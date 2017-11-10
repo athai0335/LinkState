@@ -120,17 +120,61 @@ void Manager::readTopologyFile(string topologyFile){
 
 }
 
+
 //***************************************************************************************
 void Manager::createNetwork(){
 	
 	int udpPort = 11000;
 	char buffer[225];
+    char ipAddress[225];
+    
 	//--------		
 	char * argv[MAX_ARGS]; //the maximum number of argument the router is going to take. the last one has to be a NULL pointer
 	argv[0] = strdup("router");
 	//----------
 	pid_t child_pid;
 	int child_status;
+    
+    int servSock;
+    int clientSock;
+    int ServPort = 5001;         //FIX
+    struct sockaddr_in ServAddr;
+    socklen_t size;
+    bool quit = false;
+    int opt = 1;
+    char hostname[128];
+    struct hostent *temp;
+    struct in_addr addr;
+    
+    //Create Socket to listen on
+    if((servSock=socket(PF_INET,SOCK_STREAM,IPPROTO_TCP)) < 0){
+     cerr << "ERROR CREATING SERVER SOCKET" << endl;
+     exit(EXIT_FAILURE);
+    }
+    
+    setsockopt(servSock,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
+    
+    ServAddr.sin_family = AF_INET;
+    ServAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    ServAddr.sin_port = htons(ServPort);
+    
+    //binding
+    if(bind(servSock,(struct sockaddr*)&ServAddr,sizeof(ServAddr)) < 0){
+        cerr << "ERROR BINDING SOCKET" << endl;
+        exit(EXIT_FAILURE);
+    }
+    
+    size = sizeof(ServAddr);
+    //listening
+    if(listen(servSock,MAXPENDING) < 0){
+        cerr << "ERROR LISTENING" << endl;
+        exit(EXIT_FAILURE);
+    }
+    
+    gethostname(hostname,sizeof(hostname));
+    temp = gethostbyname(hostname);
+    cout << "Waiting for a connection on " << inet_ntoa(*(struct in_addr*)temp->h_addr)  << " port " << ServPort << endl;
+    
 	//----------
 	cout<<"Manager has started forking unix process per router..."<<endl;
 	//---------
@@ -145,13 +189,15 @@ void Manager::createNetwork(){
 			//cout<<"************child*******"<<endl;
 			//----------clear the buffer----------
 			memset(buffer, '\0', sizeof(buffer));
-
+            memset(ipAddress, '\0', sizeof(ipAddress));
 			//---------store the udpPort number into the buffer--------
         		sprintf(buffer, "%d", udpPort);
+                sprintf(ipAddress, "%d", ServAddr.sin_addr.s_addr), 
 //cout<<"****************Port: "<<udpPort<<endl;
 			//---------prepare the argument to be sent to the router to execute(ex: router 11000)--
 			argv[1] = buffer;
-			argv[2] = NULL; //NULL pointer to mark the end of the argument--------	
+            argv[2] = ipAddress;
+			argv[3] = NULL; //NULL pointer to mark the end of the argument--------	
 		
 			//--------execute the router command-----------
 			//execv(argv[0], NULL);
@@ -163,10 +209,15 @@ void Manager::createNetwork(){
 		}
 		else if(child_pid > 0){
 			//------this is run by the parent. wait for the chlid to terminate
-			//cout<<"***********parent*******"<<endl;
 			
 			wait(&child_status);
-	
+            cout << "CHILD PROCESS EXITED" << endl;
+            if((clientSock=accept(servSock,(struct sockaddr*)&ServAddr,&size)) < 0){
+            cerr << "ERROR ACCEPTING" << endl;
+            exit(EXIT_FAILURE);
+            }
+            
+            cout << "MANAGER ACCEPTED CONNECTION" << endl;
 			/*if(WIFEXITED(child_status)){
 				cout<<"Exit status: "<<WEXITSTATUS(child_status)<<endl;
 			}*/
@@ -211,7 +262,6 @@ int main(int argc, char *argv[]) {
 
 	//-------------
 	manager.createNetwork();
-
 
 
 	return 0;
