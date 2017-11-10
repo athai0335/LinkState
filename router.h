@@ -30,7 +30,7 @@ using namespace std;
 
 class router {
 	public:
-
+        void client();
 };
 
 

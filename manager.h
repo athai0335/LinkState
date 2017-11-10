@@ -29,7 +29,7 @@ using namespace std;
 
 #define MAX_ROUTES 128 //maximum size of routing table
 #define MAX_ARGS 3 //the maximum number of argument the router is going to take. the last one hasto be NULL
-
+#define MAXPENDING 10 //max fd's
 
 
 
@@ -42,7 +42,6 @@ class Manager {
 
 		void readTopologyFile(string topologyFile);
 		void createNetwork();
-
 
 	private:
 		struct routes{
