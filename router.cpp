@@ -1,13 +1,9 @@
 #include "router.h"
 
-int main(int argc, char *argv[]) {
 
-	cout<<"*********INSIDE ROUTER*********"<<endl;
-    
-    int clientSock;
-    int buffSize = 500;
-    char buff[buffSize];
-    bool quit = false;
+void router::ManagerConnection(char * ip,int udpPort){
+    //int buffSize = 500;
+    //char buff[buffSize];
     
     clientSock = socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
     if(clientSock < 0){
@@ -18,7 +14,7 @@ int main(int argc, char *argv[]) {
     
     struct sockaddr_in ServAddr;
     ServAddr.sin_family = AF_INET;
-    ServAddr.sin_addr.s_addr = inet_addr(argv[2]);
+    ServAddr.sin_addr.s_addr = inet_addr(ip);
     ServAddr.sin_port = htons(5001);
     
     cout << "Connecting to manager..." << endl;
@@ -30,7 +26,19 @@ int main(int argc, char *argv[]) {
     //memset(&ServAddr,0,sizeof(ServAddr));
    // recv(clientSock,buff,buffSize,0);
     cout << "Connected to manager!" << endl;
-    cout << "Ready for node address assignment and connectivity table" << endl;
+    cout << "Ready for connectivity table" << endl;
+    cout << "My UDP Port: " << udpPort << endl;
+}
 
+int main(int argc, char *argv[]) {
+    
+	cout<<"*********INSIDE ROUTER*********"<<endl;
+    router router;
+    
+    router.udpPort = atoi(argv[1]);
+    router.ipAddress = argv[2];
+    router.nodeAddress = atoi(argv[3]);
+    cout << "nodeAddress: " << router.nodeAddress << endl;
+    router.ManagerConnection(router.ipAddress,router.udpPort);
 	return 0;
 }

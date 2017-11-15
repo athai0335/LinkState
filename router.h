@@ -31,6 +31,14 @@ using namespace std;
 class router {
 	public:
         void client();
+        void ManagerConnection(char * ip,int udpPort);
+        int nodeAddress;
+        int udpPort;
+        int clientSock;
+        char * ipAddress;
+        
+    private:
+    
 };
 
 
