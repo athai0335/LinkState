@@ -120,41 +120,83 @@ void Manager::readTopologyFile(string topologyFile){
 
 }
 
+
 //***************************************************************************************
 void Manager::createNetwork(){
 	
 	int udpPort = 11000;
 	char buffer[225];
+    char ipAddress[225];
+    char nodeBuffer[225];
+    int nodeAddress = 0;
+    
 	//--------		
 	char * argv[MAX_ARGS]; //the maximum number of argument the router is going to take. the last one has to be a NULL pointer
 	argv[0] = strdup("router");
 	//----------
-	pid_t child_pid;
-	int child_status;
+    
+    int opt = 1;
+    char hostname[128];
+    
+    //Create Socket to listen on
+    if((servSock=socket(PF_INET,SOCK_STREAM,IPPROTO_TCP)) < 0){
+     cerr << "ERROR CREATING SERVER SOCKET" << endl;
+     exit(EXIT_FAILURE);
+    }
+    
+    setsockopt(servSock,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
+    
+    ServAddr.sin_family = AF_INET;
+    ServAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    ServAddr.sin_port = htons(ServPort);
+    
+    //binding
+    if(bind(servSock,(struct sockaddr*)&ServAddr,sizeof(ServAddr)) < 0){
+        cerr << "ERROR BINDING SOCKET" << endl;
+        exit(EXIT_FAILURE);
+    }
+    
+    size = sizeof(ServAddr);
+    //listening
+    if(listen(servSock,MAXPENDING) < 0){
+        cerr << "ERROR LISTENING" << endl;
+        exit(EXIT_FAILURE);
+    }
+    
+    gethostname(hostname,sizeof(hostname));
+    temp = gethostbyname(hostname);
+    cout << "Waiting for a connection on " << inet_ntoa(*(struct in_addr*)temp->h_addr)  << " port " << ServPort << endl;
+    
 	//----------
 	cout<<"Manager has started forking unix process per router..."<<endl;
 	//---------
 
 	for(int i =0; i <route.at(0).totalRoutes; i++){
-
-		//---------creat the child process-------
+        nodeAddress = i;
+        
+		//---------create the child process-------
 		child_pid = fork();
-
 		//---------
 		if(child_pid == 0){//------this is done by the child process-------- 
-			//cout<<"************child*******"<<endl;
 			//----------clear the buffer----------
 			memset(buffer, '\0', sizeof(buffer));
-
-			//---------store the udpPort number into the buffer--------
+            memset(ipAddress, '\0', sizeof(ipAddress));
+            memset(nodeBuffer, '\0', sizeof(nodeBuffer));
+            
+                // store the udpPort number into the buffer--------
         		sprintf(buffer, "%d", udpPort);
-//cout<<"****************Port: "<<udpPort<<endl;
+                // store IP address in buffer
+                sprintf(ipAddress, "%d", ServAddr.sin_addr.s_addr);
+                // store node assignent in buffer
+                sprintf(nodeBuffer, "%d", nodeAddress);
+
 			//---------prepare the argument to be sent to the router to execute(ex: router 11000)--
-			argv[1] = buffer;
-			argv[2] = NULL; //NULL pointer to mark the end of the argument--------	
+			argv[1] = buffer; //Contains UDP Port Number
+            argv[2] = ipAddress; // Used by router to know which IP address of manager to connect to
+            argv[3] = nodeBuffer; //Contains the Node assignment for that router (0 to N-1)
+			argv[4] = NULL; //NULL pointer to mark the end of the argument--------	
 		
 			//--------execute the router command-----------
-			//execv(argv[0], NULL);
 			execv(argv[0], argv); //call the router function and pass in the arguments
 
 			//----If execv returns, it failed to run the command in the terminal
@@ -163,10 +205,9 @@ void Manager::createNetwork(){
 		}
 		else if(child_pid > 0){
 			//------this is run by the parent. wait for the chlid to terminate
-			//cout<<"***********parent*******"<<endl;
 			
-			wait(&child_status);
-	
+			//wait(&child_status);
+            //cout << "CHILD PROCESS EXITED" << endl;
 			/*if(WIFEXITED(child_status)){
 				cout<<"Exit status: "<<WEXITSTATUS(child_status)<<endl;
 			}*/
@@ -180,14 +221,30 @@ void Manager::createNetwork(){
 
 		udpPort += 1000;
 	}
+	
+	while(1){
+        FD_ZERO(&readfds);    //clear fd_set
+        FD_SET(servSock, &readfds);
+        
+        max_fd = servSock + 1;
+        
+        activity = select( max_fd, &readfds , NULL , NULL , NULL); 
+        
+        if ((activity < 0) && (errno!=EINTR))  
+        {  
+            printf("select error");  
+        } 
+        
+        if (FD_ISSET(servSock, &readfds)){
+            if((clientSock=accept(servSock,(struct sockaddr*)&ServAddr,&size)) < 0){
+            cerr << "ERROR ACCEPTING" << endl;
+            exit(EXIT_FAILURE);
+            }
+            cout << "MANAGER ACCEPTED CONNECTION" << endl;
+        }
+    
+    }
 }
-
-	
-	
-
-
-
-
 
 //********************************************************************************************************
 int main(int argc, char *argv[]) {
@@ -211,7 +268,6 @@ int main(int argc, char *argv[]) {
 
 	//-------------
 	manager.createNetwork();
-
 
 
 	return 0;
