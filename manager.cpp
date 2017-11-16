@@ -5,7 +5,41 @@ string dateTime;
 int totalRoutes =0;
 int routerTCPsock;
 int routerTCPsocket[MAX_ROUTES]; //contains sockets for all routers
+//int receivedUDP_Message[MAX_ROUTES]; //to store numbers of UDP message received from router
+vector<int> receivedUDP_Message;
 
+//*******************************************************************************
+bool Manager::isRoutersConnected()
+{
+   // int count = 0;
+    bool status = false;
+
+
+	cout<<"**********totalRoutes: "<<totalRoutes<<endl;
+   
+        for(int i = 0; i < totalRoutes; i++)
+        {
+   
+		cout<<"+++++++++++++++++++receivedUDP_Message[i]: "<<receivedUDP_Message[i]<<endl;
+                
+        }
+
+	
+	cout<<"*************sizeof(receivedUDP_Message): "<<receivedUDP_Message.size()<<endl;
+
+        if(receivedUDP_Message.size() == (unsigned) totalRoutes)
+        {
+		//cout<<"********************ppppppppppppppoooooooooooo"<<endl;
+            status = true;
+        }
+        else{
+		status = false;
+	}
+            
+    
+
+	return status;
+}
 
 
 
@@ -38,28 +72,6 @@ char* Manager::getManagerIPAddress(){
 	return serverIp;
 }
 
-
-
-
-
-//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
-/*string Manager::currentDateTime(){
-	
-	timeval curTime;
-	gettimeofday(&curTime, NULL);
-	int milli = curTime.tv_usec / 1000;
-
-	char buf [80];
-	strftime(buf, sizeof(buf), "%F %X", localtime(&curTime.tv_sec));
-
-	char currentTime[84] = "";
-	sprintf(currentTime, "[%s:%d]", buf, milli);
-
-
-
-	return currentTime;
-
-}*/
 
 
 //********************Read the content of the network topology file**************************
@@ -258,7 +270,7 @@ void Manager::createNetwork(){
 			//cout<<"***********parent*******"<<endl;
 			
 			wait(&child_status);
-	
+			
 			/*if(WIFEXITED(child_status)){
 				cout<<"Exit status: "<<WEXITSTATUS(child_status)<<endl;
 			}*/
@@ -274,6 +286,7 @@ void Manager::createNetwork(){
 	}
 }
 
+
 /********************************************************** 
 the router must be told several pieces of information: It's own address, who its neighbors are,  what are the link costs to each neighbor and the UDP port number for each neighbor	
 ***********************************************************/
@@ -285,42 +298,44 @@ void Manager::sendToRouter(){
 	char buffer[255];
 	//------------------------------
 	//cout<<""<<dateTime<<"[Manager]: creating router information to send..."<<endl;
+//cout<<"+++++++++++++++++++++++receivedUDP_Message[0]: "<<receivedUDP_Message[0]<<endl;
+	if(isRoutersConnected()){
 
-	for(int unsigned i=0; i<route.size(); i++){
+		for(int unsigned i=0; i<route.size(); i++){
 
-		//cout<<"++++++++++++++++route.at(i).nodeAddress: "<<route.at(i).nodeAddress<<endl;
-		//cout<<"+++++++++++++++++++++++++++++++++++++++++: "<<i<<endl;
+			//cout<<"++++++++++++++++route.at(i).nodeAddress: "<<route.at(i).nodeAddress<<endl;
+			//cout<<"+++++++++++++++++++++++++++++++++++++++++: "<<i<<endl;
 
-		bzero(buffer,sizeof(buffer)); //clear the buffer
-		//make sure the right message get send to the right router
-		if( (unsigned) route.at(i).nodeAddress == i){ 
+			bzero(buffer,sizeof(buffer)); //clear the buffer
+			//make sure the right message get send to the right router
+			if( (unsigned) route.at(i).nodeAddress == i){ 
 
-			cout<<""<<dateTime<<"[Manager]: sending node address & connectivity table to Router["<<route.at(i).nodeAddress<<"]..."<<endl;
+				cout<<""<<dateTime<<"[Manager]: sending node address & connectivity table to Router["<<route.at(i).nodeAddress<<"]..."<<endl;
 
-			temp = "Address: " + to_string(route.at(i).nodeAddress) + "| " + "Neighbor Address: " + to_string(route.at(i).nextHop) + "| " + "Cost to Neighbor: " + to_string(route.at(i).cost);
+				temp = "Address: " + to_string(route.at(i).nodeAddress) + "| " + "Neighbor Address: " + to_string(route.at(i).nextHop) + "| " + "Cost to Neighbor: " + to_string(route.at(i).cost);
 
 
-			strcpy(buffer, temp.c_str());
-			//cout<<"++++++++++++++++++++++++++++++++buffer: "<<buffer<<endl;
-			//cout<<"++++++++++++++++++++routerTCPsocket[i]: "<<routerTCPsocket[i]<<endl;
-			//------------------
-			if(send(routerTCPsocket[i], buffer, strlen(buffer), 0) != (unsigned) strlen(buffer)){
-				cout<<"Manager: router ["<<route.at(i).nodeAddress<<"] "<<"not connected\n";
+				strcpy(buffer, temp.c_str());
+				//cout<<"++++++++++++++++++++++++++++++++buffer: "<<buffer<<endl;
+				cout<<"----------------routerTCPsocket[i]: "<<routerTCPsocket[i]<<endl;
+				//------------------
+				if(send(routerTCPsocket[i], buffer, strlen(buffer), 0) != (unsigned) strlen(buffer)){
+					cout<<"Manager: router ["<<route.at(i).nodeAddress<<"] "<<"not connected\n";
+				}
+
+				//send(routerTCPsocket[i], buffer, strlen(buffer), 0);
+
+				cout<<""<<dateTime<<"[Manager]: router information sent successfully!"<<endl;
 			}
+		
 
-			//send(routerTCPsocket[i], buffer, strlen(buffer), 0);
-
-			cout<<""<<dateTime<<"[Manager]: router information sent successfully!"<<endl;
+			
+		
 		}
-		
 
-        	
-		
+
+
 	}
-
-
-
-
 
 	
 	
@@ -346,6 +361,7 @@ void Manager::managerProcess(){
 	//----------initialise all routerTCPsocket[] to 0 so not checked--------------
 	for(i = 0; i< MAX_ROUTES; i++){
 		routerTCPsocket[i] = 0;
+		//receivedUDP_Message[i] = 0;
 	}
 
 	//---------create a manager socket to listen for request from each routers------------------------
@@ -414,7 +430,7 @@ void Manager::managerProcess(){
 		//------add manager socket to set--------------
 		FD_SET(managerTCPsock, &readfds);
 		max_sd = managerTCPsock;
-	
+
 		//-------add router TCP socket to set-------------
 		for(i = 0; i< MAX_ROUTES; i++){
 			//--socket descriptor--
@@ -464,9 +480,13 @@ void Manager::managerProcess(){
 				exit(1);
 			}
 
-			cout<<""<<dateTime<<"[Manager]: received from router- "<<buffer<<endl;                
+			cout<<""<<dateTime<<"[Manager]: received from router Port- "<<buffer<<endl;                
+			
+			//-----------------------------------
+			//receivedUDP_Message[i] = atoi(buffer);
 
-
+//******--------***********-----------************
+receivedUDP_Message.push_back(atoi(buffer));
 
 			//add new socket to array of sockets 
 			for (i = 0; i < MAX_ROUTES; i++)  
@@ -545,4 +565,3 @@ int main(int argc, char *argv[]) {
 
 	return 0;
 }
-

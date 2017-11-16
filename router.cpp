@@ -141,19 +141,21 @@ void Router::routerProcess(){
 		FD_SET(routerUDPsock, &readfds);
 		
 		max_sd = routerTCPsock;
-	
-		//-------add router TCP socket to set-------------
 
+		//-------add router TCP socket to set-------------
+cout<<"*******************routerTCPsock: "<<routerTCPsock<<endl;
+cout<<"*******************routerUDPsock: "<<routerUDPsock<<endl;
 		//--highest file descriptor numner, 
 		//--need it for the select function--
 		if(routerUDPsock > max_sd){
 			max_sd = routerUDPsock;
 		}
-		
+
 		//--wait for an activity on one of the sockets , timeout is NULL , 
 		//--so wait indefinitely 
+//cout<<"**************max_sd: "<<max_sd<<endl;
 		activity = select( max_sd + 1 , &readfds , NULL , NULL , NULL);  
-
+cout<<"*******************activity************"<<endl;
 		if ((activity < 0) && (errno!=EINTR))  
 		{  
 		   cout<<"Router select error"<<endl;
@@ -170,6 +172,7 @@ void Router::routerProcess(){
 			bzero(buffer,255); //clear the buffer
       			sprintf(buffer, "%s", "READY");
 			sendToManager(buffer);
+			
 
 		}
 
