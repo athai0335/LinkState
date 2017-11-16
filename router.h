@@ -17,20 +17,24 @@
 #include <signal.h>
 #include <getopt.h>
 #include<stdbool.h>
-
+#include  <sys/types.h>
 
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <sys/time.h>
+
 using namespace std;
 
 
 
-class router {
+class Router {
 	public:
-
+		void routerProcess();
+		void sendToManager( char* message);
+		char* receiveFromManager();
 };
 
 
