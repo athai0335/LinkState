@@ -35,6 +35,10 @@ class Router {
 		void routerProcess();
 		void sendToManager( char* message);
 		char* receiveFromManager();
+		void writeToRouterFile(string filename, string message);
+		//-----------------
+		//------------
+		ofstream routerFile;
 };
 
 

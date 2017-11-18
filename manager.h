@@ -26,6 +26,8 @@
 #include <fstream>
 #include <vector>
 #include <sys/time.h>
+#include <array>
+#include <fstream>
 //#include <pthread.h>
 #include <thread>
 //#include <boost/thread.hpp>
@@ -35,7 +37,7 @@
 using namespace std;
 
 #define MAX_ROUTES 128 //maximum size of routing table
-#define MAX_ARGS 5 //the maximum number of argument the router is going to take. the last one hasto be NULL
+#define MAX_ARGS 7 //the maximum number of argument the router is going to take. the last one hasto be NULL
 #define BACKLOG 5 //how may pending connections queue will hold
 
 
@@ -56,7 +58,9 @@ class Manager {
 		void managerProcess();
 		char* getManagerIPAddress();
 		void sendToRouter();
-		bool allConnected();
+		bool isRoutersConnected();
+		void writeToManagerFile(string str);
+
 		//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
 		string currentDateTime(){
 	
@@ -88,7 +92,7 @@ class Manager {
   		}
 
 		//------------
-
+		ofstream managerFile;
 
 	private:
 		struct routes{
@@ -107,6 +111,9 @@ class Manager {
 		vector<packetInfo> packet; //to store the source and destination pair of the packet
 		//-----------
 		vector<routes> route; //to store the X,Y,C of each nodes
+
+		
+
 
 };
 
