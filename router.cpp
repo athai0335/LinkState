@@ -51,7 +51,12 @@ char* Router::receiveFromManager(){
 	 
 	recv(routerTCPsock, buffer, sizeof(buffer), 0);
 	
-	//cout<<""<<dateTime<<"[Router]: received from manager - " << buffer<<endl;
+	//----------------------
+	bzero(messageHolder, sizeof(messageHolder));
+	sprintf(messageHolder, "[Router%d]: receiving from manager...", nodeAddress);
+	writeToRouterFile(RouterFileName, messageHolder);	
+
+	//---------------------
 	bzero(messageHolder, sizeof(messageHolder));
 	sprintf(messageHolder, "[Router%d]: received from manager - %s", nodeAddress, buffer);
 	writeToRouterFile(RouterFileName, messageHolder);

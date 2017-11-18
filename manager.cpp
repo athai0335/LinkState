@@ -237,13 +237,35 @@ void Manager::createNetwork(){
 	//cout<<""<<dateTime<<"[Manager]: forking unix process per router..."<<endl;
 	//writeToManagerFile("[Manager]: forking unix process per router...");
 
+	//---------------make sure you don't create the same router twice -------------------
+	int tempNodeAddress;
+	vector<int> vecNodeAddress;
+
+	//cout<<"************************route.size(): "<<route.size()<<endl;
+	for(int unsigned i=0; i<route.size(); i++){
+		tempNodeAddress = route.at(i).nodeAddress;
+
+		if(find(vecNodeAddress.begin(), vecNodeAddress.end(), tempNodeAddress) == vecNodeAddress.end()){
+			vecNodeAddress.push_back(tempNodeAddress);
+			
+		}
+
+	}
+
+	/*for(int unsigned i=0; i<vecNodeAddress.size(); i++){
+		cout<<"****************vecNodeAddress: "<<vecNodeAddress.at(i)<<endl;
+	}*/
+	//----------------------------------------------------------------
+
 	//---------
-//cout<<"***************route.at(0).totalRoutes: "<<route.at(0).totalRoutes<<endl;
-//cout<<"************************totalRoutes: "<<totalRoutes<<endl;
+	//cout<<"***************route.at(0).totalRoutes: "<<route.at(0).totalRoutes<<endl;
+	//cout<<"************************totalRoutes: "<<totalRoutes<<endl;
 	for(int i =0; i <route.at(0).totalRoutes; i++){
 		//-------------------------
-		nodeAddress = route.at(i).nodeAddress;
-//cout<<"*******************nodeAddress: "<<nodeAddress<<endl;
+		//nodeAddress = route.at(i).nodeAddress;
+		nodeAddress = vecNodeAddress.at(i);
+		//cout<<"*******************nodeAddress: "<<nodeAddress<<endl;
+
 		//---------creat the child process-------
 		child_pid = fork();
 
@@ -313,6 +335,34 @@ void Manager::createNetwork(){
 
 }
 
+//******************************
+string Manager::getRouterInfo(int nodeAddress) {
+	string temp;
+	stringstream info;
+	//cout<<"*********************size: "<<route.size()<<endl;
+	for(int unsigned i=0; i<route.size(); i++){
+		
+		//cout<<"++++++++++++++++++++++++++++NodeNo: "<<NodeNo<<endl;
+		//cout<<"++++++++++++++++++++++++++++route: "<< route.at(i).nodeAddress<<endl;
+		if( route.at(i).nodeAddress == nodeAddress){ 
+			//cout<<"****************************route: "<< route.at(i).nodeAddress<<endl;
+			//temp = "Address: " + to_string(route.at(i).nodeAddress) + "| " + "Neighbor Address: " + to_string(route.at(i).nextHop) + "| " + "Cost to Neighbor: " + to_string(route.at(i).cost) + "| ";
+			temp = to_string(route.at(i).nodeAddress) + " " + to_string(route.at(i).nextHop) + " " + to_string(route.at(i).cost) + "| ";
+			//cout<<"*********************************temp: "<<temp<<endl;
+			info<<temp;
+			//cout<<"******************info: "<<info.str()<<endl;
+		}
+
+	}
+	//cout<<"-------------------------------------"<<endl;
+	//cout<<"*********temp: "<<temp<<endl;
+
+	string returnInfo = info.str();
+	//cout<<"**************returnInfo: "<<returnInfo<<endl;
+
+	return returnInfo;
+}
+
 
 
 /********************************************************** 
@@ -322,9 +372,10 @@ the router must be told several pieces of information: It's own address, who its
 void Manager::sendToRouter(){
 	//--------
  
-	string temp ="";
+string temp ="";
+	//char buffer[255];
 	char messageHolder[255];
-	vector<string> routerInfo;
+
 	//------------------------------
 	
 
@@ -333,34 +384,19 @@ void Manager::sendToRouter(){
 		writeToManagerFile("[Manager]: all routers are connected!");
 		//--------------------------
 
-		for(int unsigned i=0; i<route.size(); i++){
+		for(int i=0; i<route.at(0).totalRoutes; i++){
 
-			//cout<<"*********************size: "<<route.size()<<endl;
-			for(int unsigned i=0; i<route.size(); i++){
-		
-				//cout<<"++++++++++++++++++++++++++++node: "<<i<<endl;
-				//cout<<"++++++++++++++++++++++++++++route["<<i<<"]: "<< route.at(i).nodeAddress<<endl;
-				if((unsigned) route.at(i).nodeAddress == i){ 
-							//cout<<"***************** route["<<i<<"]: "<< route.at(i).nodeAddress<<endl;
-					temp = "Address: " + to_string(route.at(i).nodeAddress) + "| " + "Neighbor Address: " + to_string(route.at(i).nextHop) + "| " + "Cost to Neighbor: " + to_string(route.at(i).cost);
-					//cout<<"******************************temp: "<<temp<<endl;
-					routerInfo.push_back(temp);
-
-				}
-			}
-
-			//cout<<"***********************routerInfo: "<<routerInfo[i]<<endl;
+		        temp = getRouterInfo(i);
+			//cout<<"**********temp: "<<temp<<endl;
 		
 			bzero(messageHolder, sizeof(messageHolder));
-			sprintf(messageHolder, "[Manager]: sending to router[%d] - |%s| ...",route.at(i).nodeAddress,routerInfo[i].c_str());
+			sprintf(messageHolder, "[Manager]: sending to router[%d] - |%s...",route.at(i).nodeAddress,temp.c_str());
 			writeToManagerFile(messageHolder);
 
 			//------------------
+			//cout<<"***************routerTCPsocket[i]: "<<routerTCPsocket[i]<<endl;
 
-			int returnVal = send(routerTCPsocket[i], routerInfo[i].c_str(), 255, 0);
-			if(returnVal <0){
-				cout<<"[Manager]: Error unable to send message. Router["<<route.at(i).nodeAddress<<"] not connected!"<<endl;
-			}
+			send(routerTCPsocket[i], temp.c_str(), 255, 0);
 			
 			bzero(messageHolder, sizeof(messageHolder));
 			sprintf(messageHolder, "[Manager]: router information sent successfully to router [%d]",route.at(i).nodeAddress);
@@ -599,7 +635,7 @@ void Manager::managerProcess(){
 
 			receivedUDP_Message.push_back(atoi(UDPbuff));
 			
-			//-------
+			//-------Extrsct the router number----------
 			int startPos = t.find("[")+1;
 			string routerNumRecieved = t.substr(startPos, t.find("]")-startPos);
 			//cout<<"***********routerNumRecieved: "<<routerNumRecieved<<endl;
@@ -609,12 +645,15 @@ void Manager::managerProcess(){
 			//add new socket to array of sockets 
 			for (i = 0; i < route.at(0).totalRoutes; i++)  
 			{  
+				//cout<<"************receivedRouterNum: "<<receivedRouterNum.at(i)<<endl;
 				//if position is empty 
 				if( routerTCPsocket[i] == 0 )  
 				{  
-					//cout<<"+++++++++++++++routerTCPsock: "<<routerTCPsock<<endl;
-					routerTCPsocket[atoi(routerNumRecieved.c_str())] = routerTCPsock;  
-					//cout<<""<<dateTime<<"[Manager]: adding to list of routerTCPsocket as - "<<i<<endl;
+					//if(find(receivedRouterNum.begin(), receivedRouterNum.end(), atoi(routerNumRecieved.c_str())) != receivedRouterNum.end()){
+						
+						routerTCPsocket[atoi(routerNumRecieved.c_str())] = routerTCPsock;  
+						//cout<<""<<dateTime<<"[Manager]: adding to list of routerTCPsocket as - "<<i<<endl;		
+					//}
 
 					break;  
 				}  

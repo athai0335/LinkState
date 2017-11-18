@@ -32,7 +32,8 @@
 #include <thread>
 //#include <boost/thread.hpp>
 //#include <boost/chrono.hpp>
-
+#include <algorithm>
+#include <set>
 
 using namespace std;
 
@@ -60,6 +61,8 @@ class Manager {
 		void sendToRouter();
 		bool isRoutersConnected();
 		void writeToManagerFile(string str);
+
+		string getRouterInfo(int i);
 
 		//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
 		string currentDateTime(){
