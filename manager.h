@@ -48,9 +48,6 @@ const int FixedBufferSize = 1024;
 
 
 class Manager {
-	
-
-
 
 	public:
 
@@ -61,9 +58,9 @@ class Manager {
 		void sendToRouter();
 		bool isRoutersConnected();
 		void writeToManagerFile(string str);
-
 		string getRouterInfo(int i);
-
+		bool isRoutersReady();
+		void sendSafeToProceed();
 		//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
 		string currentDateTime(){
 	
@@ -97,7 +94,9 @@ class Manager {
 		//------------
 		ofstream managerFile;
 
+
 	private:
+		//------------
 		struct routes{
 			int totalRoutes;	
 			vector<string> vecOfNodesInfo;
@@ -105,15 +104,17 @@ class Manager {
 			int nextHop;
 			int cost; //cost(c) of a link between x and y
 		};
-		//------------
+
+		vector<routes> route; //to store the X,Y,C of each nodes
+		//--------------------
+
 		struct packetInfo{
 			int src;
 			int dst;
 		};
-		//------------
+
 		vector<packetInfo> packet; //to store the source and destination pair of the packet
-		//-----------
-		vector<routes> route; //to store the X,Y,C of each nodes
+
 
 		
 

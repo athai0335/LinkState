@@ -8,6 +8,7 @@ int routerTCPsocket[MAX_ROUTES]; //contains sockets for all routers
 //int receivedUDP_Message[MAX_ROUTES]; //to store numbers of UDP message received from router
 vector<int> receivedUDP_Message;
 vector<int> receivedRouterNum;
+vector<int> totalReady;
 //------------------
 void Manager::writeToManagerFile(string str){
 	
@@ -20,31 +21,34 @@ void Manager::writeToManagerFile(string str){
 //*******************************************************************************
 bool Manager::isRoutersConnected()
 {
-    bool status = false;
+	bool status = false;
 
-
-	//cout<<"**********totalRoutes: "<<totalRoutes<<endl;
-   
-      /*  for(int i = 0; i < route.at(0).totalRoutes; i++)
-        {
-   
-		cout<<"+++++++++++++++++++receivedUDP_Message["<<i<<"]: "<<receivedUDP_Message[i]<<endl;
-                
-        }
-	cout<<"----------------------------------"<<endl;*/
-	
-	//cout<<"*************sizeof(receivedUDP_Message): "<<receivedUDP_Message.size()<<endl;
-
-        if(receivedUDP_Message.size() == (unsigned) route.at(0).totalRoutes)
-        {
-            status = true;
-        }
-        else{
+	if(receivedUDP_Message.size() == (unsigned) route.at(0).totalRoutes)
+	{
+		status = true;
+	}
+	else{
 		status = false;
 	}
-            
-    
 
+
+
+	return status;
+}
+//*******************************************************************************
+bool Manager::isRoutersReady()
+{
+	bool status = false;
+	//cout<<"**************totalReady.size(): "<<totalReady.size()<<endl;
+	if(totalReady.size() == (unsigned) route.at(0).totalRoutes){
+		status = true;
+	
+	}
+	else{
+		status = false;
+	}
+
+	
 	return status;
 }
 
@@ -347,7 +351,7 @@ string Manager::getRouterInfo(int nodeAddress) {
 		if( route.at(i).nodeAddress == nodeAddress){ 
 			//cout<<"****************************route: "<< route.at(i).nodeAddress<<endl;
 			//temp = "Address: " + to_string(route.at(i).nodeAddress) + "| " + "Neighbor Address: " + to_string(route.at(i).nextHop) + "| " + "Cost to Neighbor: " + to_string(route.at(i).cost) + "| ";
-			temp = to_string(route.at(i).nodeAddress) + " " + to_string(route.at(i).nextHop) + " " + to_string(route.at(i).cost) + "| ";
+			temp = to_string(route.at(i).nodeAddress) + " " + to_string(route.at(i).nextHop) + " " + to_string(route.at(i).cost) + " |";
 			//cout<<"*********************************temp: "<<temp<<endl;
 			info<<temp;
 			//cout<<"******************info: "<<info.str()<<endl;
@@ -372,34 +376,34 @@ the router must be told several pieces of information: It's own address, who its
 void Manager::sendToRouter(){
 	//--------
  
-string temp ="";
-	//char buffer[255];
+	string temp ="";
+	//string infoTosend = "";
 	char messageHolder[255];
-
+	
 	//------------------------------
 	
-
 	if(isRoutersConnected()){
 		//-------------------------------
-		writeToManagerFile("[Manager]: all routers are connected!");
+		writeToManagerFile("[Manager]: All routers are connected!");
 		//--------------------------
 
 		for(int i=0; i<route.at(0).totalRoutes; i++){
 
 		        temp = getRouterInfo(i);
 			//cout<<"**********temp: "<<temp<<endl;
+			//cout<<"**********tempSize: "<<strlen(temp.c_str())<<endl;
+				
 		
 			bzero(messageHolder, sizeof(messageHolder));
-			sprintf(messageHolder, "[Manager]: sending to router[%d] - |%s...",route.at(i).nodeAddress,temp.c_str());
+			sprintf(messageHolder, "[Manager]: 	Sending to router[%d] - |%s...",route.at(i).nodeAddress,temp.c_str());
 			writeToManagerFile(messageHolder);
 
 			//------------------
-			//cout<<"***************routerTCPsocket[i]: "<<routerTCPsocket[i]<<endl;
 
 			send(routerTCPsocket[i], temp.c_str(), 255, 0);
 			
 			bzero(messageHolder, sizeof(messageHolder));
-			sprintf(messageHolder, "[Manager]: router information sent successfully to router [%d]",route.at(i).nodeAddress);
+			sprintf(messageHolder, "[Manager]: 		Router information sent successfully to router [%d]",route.at(i).nodeAddress);
 			writeToManagerFile(messageHolder);
 				
 		
@@ -409,61 +413,37 @@ string temp ="";
 
 	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/*string temp ="";
-	char buffer[255];
-	char messageHolder[255];
-
-	//------------------------------
-	
-
-	if(isRoutersConnected()){
-		//-------------------------------
-		writeToManagerFile("[Manager]: all routers are connected!");
-		//--------------------------
-
-		for(int unsigned i=0; i<route.size(); i++){
-
-		        temp = getRouterInfo(i);
-			cout<<"**********temp: "<<temp<<endl;
-		
-			bzero(messageHolder, sizeof(messageHolder));
-			sprintf(messageHolder, "[Manager]: sending to router[%d] - |%s| ...",route.at(i).nodeAddress,temp.c_str());
-			writeToManagerFile(messageHolder);
-
-			//------------------
-			//cout<<"***************routerTCPsocket[i]: "<<routerTCPsocket[i]<<endl;
-
-			send(routerTCPsocket[i], temp.c_str(), 255, 0);
-			
-			bzero(messageHolder, sizeof(messageHolder));
-			sprintf(messageHolder, "[Manager]: router information sent successfully to router [%d]",route.at(i).nodeAddress);
-			writeToManagerFile(messageHolder);
-				
-		
-		}
-
-
-
-	}*/
-
-
-
-	
 	
 }
+
+//***************************Notify routers that it is safe to reach their neighbor************************
+void Manager::sendSafeToProceed(){
+	char messageHolder[255];
+
+	if(isRoutersReady()){
+
+		bzero(messageHolder, sizeof(messageHolder));
+		sprintf(messageHolder, "[Manager]: All routers are ready!");
+		writeToManagerFile(messageHolder);
+		//--------------
+
+		for(int i=0; i<route.at(0).totalRoutes; i++){
+			//-------------
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]:	Sending to router[%d] - SAVEACK",i);
+			writeToManagerFile(messageHolder);
+
+			send(routerTCPsocket[i], "SAVEACK", 255, 0);
+
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]: 		SAVEACK sent successfully to router [%d]",route.at(i).nodeAddress);
+			writeToManagerFile(messageHolder);
+		}
+
+	}
+
+}
+
 
 
 //****************** The manager communicates with the routers via TCP************************
@@ -619,7 +599,7 @@ void Manager::managerProcess(){
 			//cout<<""<<dateTime<<"[Manager]: received from router Port- "<<buffer<<endl;                
 
 			bzero(messageHolder, sizeof(messageHolder));
-			sprintf(messageHolder, "[Manager]: received from %s", buffer);
+			sprintf(messageHolder, "[Manager]: Received from %s", buffer);
 			writeToManagerFile(messageHolder);
 
 			//--------extract the UDP Port from the message------------
@@ -671,7 +651,7 @@ void Manager::managerProcess(){
 			sd = routerTCPsocket[i];
 			
 				if(FD_ISSET( sd , &readfds)){
-					
+					//---------------Receive message from the router----------------------
 					bzero(buffer, sizeof(buffer));
 					//Check if it was for closing , and also read the incoming message 
 					if ((valread = recv( sd , buffer, sizeof(buffer) , 0))< 0)  
@@ -679,16 +659,24 @@ void Manager::managerProcess(){
 						cout<<"Error Manager unable to read from router\n";
 					}  
 					
+					//--------------Case where message receive is equal to READY!-----------------
 					if(strcmp(buffer, "READY!") == 0){
 						bzero(messageHolder, sizeof(messageHolder));
-						sprintf(messageHolder, "[Manager]: received- Ready from router[%d]", i);
+						sprintf(messageHolder, "[Manager]: Received from router[%d] - READY!", i);
 						writeToManagerFile(messageHolder);
+
+						//---------
+						totalReady.push_back(i);
+
 					}
+					//-------------
+
+
+
+					sendSafeToProceed();
 					
-					//cout<<"///////////////////////////buffer: "<<buffer<<endl;
 					
 				}
-
 		}
 		
 		

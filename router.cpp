@@ -11,6 +11,8 @@ string managerIP;
 string dateTime;
 char RouterFileName[255];
 char messageHolder[255];
+int messageReturn = 0;
+string messageReceived;
 //*************************************************
 //------------------
 void Router::writeToRouterFile(string filename, string message){
@@ -27,20 +29,40 @@ void Router::sendToManager( char* message){
 	
 
 	bzero(messageHolder, sizeof(messageHolder));
-	sprintf(messageHolder, "[Router%d]: sending to manager %s", nodeAddress,message);
+	sprintf(messageHolder, "[Router%d]: Sending to manager - %s", nodeAddress,message);
 	writeToRouterFile(RouterFileName, messageHolder);
-
+	//---------------------
 	int returnVal = send(routerTCPsock,message,strlen(message),0);
 	if (returnVal < 0){
-		cout<<"Error: Router enable to send message to router"<<endl;
+		cout<<"Error: Router enable to send message to Manager"<<endl;
 		exit(1);
 	}
-
+	//------------------
 	//cout<<""<<dateTime<<"[Router]: message sent successfully!" <<endl;
 	bzero(messageHolder, sizeof(messageHolder));
-	sprintf(messageHolder, "[Router%d]: message sent successfully!", nodeAddress);
+	sprintf(messageHolder, "[Router%d]: 	Message sent successfully!", nodeAddress);
 	writeToRouterFile(RouterFileName, messageHolder);
 }
+
+//******************Use to send message to other routers*******************
+void Router::sendToRouter(char* message){
+	//----------------
+	bzero(messageHolder, sizeof(messageHolder));
+	sprintf(messageHolder, "[Router%d]: Sending to neighbors - %s", nodeAddress,message);
+	writeToRouterFile(RouterFileName, messageHolder);
+	
+	//----------------------
+	/*int returnVal = send(routerUDPsock,message,strlen(message),0);
+	if (returnVal < 0){
+		cout<<"Error: Router enable to send message to neighbor"<<endl;
+		exit(1);
+	}*/
+	//--------------------
+
+
+}
+
+
 
 //***************use to receive message from the manager****************
 char* Router::receiveFromManager(){
@@ -49,22 +71,29 @@ char* Router::receiveFromManager(){
 	char buffer[255];
 	bzero(buffer,255); //clear the buffer
 	 
+	//-----------------
 	recv(routerTCPsock, buffer, sizeof(buffer), 0);
-	
-	//----------------------
+	//---------------------
+
+	//----------Formatting the output file-----------------------------------
 	bzero(messageHolder, sizeof(messageHolder));
-	sprintf(messageHolder, "[Router%d]: receiving from manager...", nodeAddress);
+	sprintf(messageHolder, "[Router%d]: Receiving from manager...", nodeAddress);
 	writeToRouterFile(RouterFileName, messageHolder);	
 
-	//---------------------
+	//---------------------------
 	bzero(messageHolder, sizeof(messageHolder));
-	sprintf(messageHolder, "[Router%d]: received from manager - %s", nodeAddress, buffer);
+	sprintf(messageHolder, "[Router%d]: 	Received from manager - %s", nodeAddress, buffer);
 	writeToRouterFile(RouterFileName, messageHolder);
 
 	
+	//--------------------------
 	char* str = (char *)malloc(sizeof(char) * 256);
 	memset(str, '\0', sizeof(buffer) + 1);
 	strncpy(str, buffer, sizeof(buffer));
+
+	//---------------------
+	messageReceived = buffer;
+
 	return str;
 } 
 
@@ -220,6 +249,7 @@ void Router::routerProcess(){
 	sendToManager(udpPortBuffer);
 
 
+
 	while(1)
 	{
 		//--------clear the socket set-------------
@@ -250,18 +280,95 @@ void Router::routerProcess(){
 		}  
 		    
 		//--If something happened on the Router TCP socket , 
-		//--then its an incoming connection 
+		//--then its an incoming connection from manager--------
 		if (FD_ISSET(routerTCPsock, &readfds))  
 		{ 
-			//----receive message send from Manager
-			receiveFromManager(); 
-			//cout<<"**************routerTCPsock: "<<routerTCPsock<<endl;
-			//-----send ready message to manager-------      
-			bzero(buffer,255); //clear the buffer
-      			sprintf(buffer, "%s", "READY!");
-			sendToManager(buffer);
-			
 
+			switch(messageReturn){
+				case 0 :
+				{
+					//----receive node Address and connectivity table from Manager
+					 receiveFromManager(); 
+					//-----------------------------
+					
+					//-------------Extract informations from the message received--------------
+					routes nodeInfo;	
+					//cout<<"*********messageReceived: "<<messageReceived<<endl;
+					
+					/*string token;
+					string tok;
+					istringstream iss(messageReceived);
+					while(getline(iss, token, '|')){ 
+						//cout<<"**********token: "<< token<<endl;
+							istringstream iss2(token);
+							while(getline(iss2, tok, ' ')){ 
+								//cout<<"**********tok x: "<< tok<<endl;
+								nodeInfo.nodeAddress = atoi(tok.c_str());
+
+								//--------------------
+								getline(iss2, tok, ' ');
+								//cout<<"*********tok y: "<<tok<<endl;
+								nodeInfo.nextHop = atoi(tok.c_str());
+
+								//-------------------
+								getline(iss2, tok, ' ');
+								//cout<<"*********tok c: "<<tok<<endl;
+								nodeInfo.cost = atoi(tok.c_str());
+
+								//--------------
+								routerInfo.push_back(nodeInfo);
+								
+							}
+					}
+
+					//------------------------------
+					for(int unsigned i=0; i<routerInfo.size(); i++){
+						cout<<"*************nodeAddress["<<i<<"]: "<<routerInfo.at(i).nodeAddress<<endl;
+						cout<<"**********nextHop["<<i<<"]: "<<routerInfo.at(i).nextHop<<endl;
+						cout<<"*************cost["<<i<<"]: "<<routerInfo.at(i).cost<<endl;
+					}
+					cout<<"----------------------"<<endl;*/
+
+
+					//--------------------------------------------
+
+					//-----send ready message to manager-------      
+					bzero(buffer,255); //clear the buffer
+		      			sprintf(buffer, "%s", "READY!");
+					sendToManager(buffer);
+					messageReturn = 1;
+				}
+					break;
+				
+				case 1 :
+					//----receive ACK from manager that it is save to reach neighbors-----------------
+					receiveFromManager(); 
+
+					//-----send a link request to each neighbor and wait for an ACK------
+					bzero(buffer,255); //clear the buffer
+		      			sprintf(buffer, "%s", "*********PROGRESS********!");
+					sendToRouter(buffer);
+					
+			
+					//----------------------------
+					messageReturn = 2;
+					break;
+			
+			}
+
+		}
+
+		//--If something happened on the Router UDP socket , 
+		//--then its an incoming connection from another router----
+		if (FD_ISSET(routerUDPsock, &readfds))  
+		{ 
+			
+			switch(messageReturn){
+				case 1 :
+
+					cout<<"********working******\n";
+
+			}
 		}
 
 

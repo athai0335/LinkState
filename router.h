@@ -36,9 +36,20 @@ class Router {
 		void sendToManager( char* message);
 		char* receiveFromManager();
 		void writeToRouterFile(string filename, string message);
-		//-----------------
+		void sendToRouter(char* message); 
 		//------------
 		ofstream routerFile;
+
+	private:
+		//------------
+		struct routes{
+			int nodeAddress; //nodeAddress(x) and nextHop(y) are node number between 0 and N-1 
+			int nextHop;
+			int cost; //cost(c) of a link between x and y
+		};
+
+		vector<routes> routerInfo; //to store the X,Y,C of each nodes
+		//--------------------
 };
 
 
