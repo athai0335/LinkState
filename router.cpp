@@ -12,6 +12,7 @@ string dateTime;
 char RouterFileName[255];
 char messageHolder[255];
 int messageReturn = 0;
+int udpStatus = 0;
 string messageReceived;
 //*************************************************
 //------------------
@@ -45,21 +46,21 @@ void Router::sendToManager( char* message){
 }
 
 //******************Use to send message to other routers*******************
-void Router::sendToRouter(char* message){
+void Router::sendToRouter(char* message,sockaddr_in serverUDP_addr){
 	//----------------
 	bzero(messageHolder, sizeof(messageHolder));
 	sprintf(messageHolder, "[Router%d]: Sending to neighbors - %s", nodeAddress,message);
 	writeToRouterFile(RouterFileName, messageHolder);
-	
-	//----------------------
-	/*int returnVal = send(routerUDPsock,message,strlen(message),0);
-	if (returnVal < 0){
-		cout<<"Error: Router enable to send message to neighbor"<<endl;
-		exit(1);
-	}*/
+    
 	//--------------------
-
-
+    if(sendto(routerUDPsock,message,strlen(message),0,(struct sockaddr *)&serverUDP_addr, sizeof(serverUDP_addr)) < 0){
+        perror("Could not send UDP");
+    }
+    
+    bzero(message,sizeof(message));
+    sprintf(message, "[Router%d]: 	Message sent successfully!", nodeAddress);
+	writeToRouterFile(RouterFileName, message); 
+    //cout << "SENT!!!!!!!!!!!!" << endl;
 }
 
 
@@ -248,7 +249,9 @@ void Router::routerProcess(){
         sprintf(udpPortBuffer, "Router[%d] UDP Port - %d", nodeAddress, udpPort);
 	sendToManager(udpPortBuffer);
 
-
+    //setup address for udp sender
+    struct sockaddr_in udpSender;
+    socklen_t addrlen = sizeof(udpSender);
 
 	while(1)
 	{
@@ -343,6 +346,7 @@ void Router::routerProcess(){
                     
                 case 1 :
                 {
+                    //recieve node address and corresponding udp port number from manager
                     receiveFromManager();
                     
                     routerAndPort rp;
@@ -376,7 +380,7 @@ void Router::routerProcess(){
 				
 				case 2 :
                 {
-					//----receive ACK from manager that it is save to reach neighbors-----------------
+					//----receive ACK from manager that it is safe to reach neighbors-----------------
 					receiveFromManager(); 
                     
                     //----bind--------------------
@@ -386,12 +390,23 @@ void Router::routerProcess(){
 
 					//-----send a link request to each neighbor and wait for an ACK------
 					bzero(buffer,255); //clear the buffer
-		      			sprintf(buffer, "%s", "Sending link request");
-					sendToRouter(buffer);
+                    sprintf(buffer, "%s", "Link request");
+					sendToRouter(buffer,serverUDP_addr);
+                    
+					//----------------------------
+                    messageReturn = 3;
+                }
+                    break;
+                    
+                case 3 :
+                {
+					//----Recieve indication that all links have been established and network is up (Send Link State Packet to all neighbors)-----------------
+					receiveFromManager(); 
+                    
 					
 			
 					//----------------------------
-                    messageReturn = 3;
+                    messageReturn = 4;
                 }
                     break;
 			}
@@ -403,10 +418,14 @@ void Router::routerProcess(){
 		if (FD_ISSET(routerUDPsock, &readfds))  
 		{ 
 			
-			switch(messageReturn){
-				case 1 :
-
-					cout<<"********working******\n";
+			switch(udpStatus){
+				case 0 :
+                    //recieve Link request
+                    bzero(buffer,255); //clear the buffer
+                    if(recvfrom(routerUDPsock,buffer,sizeof(buffer),0,(struct sockaddr*)&udpSender,&addrlen) < 0){
+                        perror("ERROR RECEIVING UDP STATUS: 0");
+                    }
+                    //cout << "Buffer: " << buffer << endl;
 
 			}
 		}

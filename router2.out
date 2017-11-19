@@ -1,20 +1,21 @@
-[2017-11-19 01:26:22:122][Router2]: Process started
-[2017-11-19 01:26:22:122][Router2]: creating TCP socket...
-[2017-11-19 01:26:22:122][Router2]: TCP socket created!
-[2017-11-19 01:26:22:122][Router2]: TCP Port - 21000
-[2017-11-19 01:26:22:122][Router2]: creating UDP socket...
-[2017-11-19 01:26:22:122][Router2]: UDP socket created!
-[2017-11-19 01:26:22:122][Router2]: UDP Port - 13000
-[2017-11-19 01:26:22:122][Router2]: Connecting to manager <192.168.0.41>...
-[2017-11-19 01:26:22:122][Router2]: connected succssuflly to manager!
-[2017-11-19 01:26:22:122][Router2]: Sending to manager - Router[2] UDP Port - 13000
-[2017-11-19 01:26:22:122][Router2]: 	Message sent successfully!
-[2017-11-19 01:26:22:122][Router2]: Receiving from manager...
-[2017-11-19 01:26:22:122][Router2]: 	Received from manager - 2 1 40 |
-[2017-11-19 01:26:22:122][Router2]: Receiving from manager...
-[2017-11-19 01:26:22:122][Router2]: 	Received from manager - 0 11000 |2 13000 |1 12000 |3 14000 |
-[2017-11-19 01:26:22:122][Router2]: Sending to manager - READY!
-[2017-11-19 01:26:22:122][Router2]: 	Message sent successfully!
-[2017-11-19 01:26:22:122][Router2]: Receiving from manager...
-[2017-11-19 01:26:22:122][Router2]: 	Received from manager - SAVEACK
-[2017-11-19 01:26:22:122][Router2]: Sending to neighbors - Sending link request
+[2017-11-19 12:31:42:146][Router2]: Process started
+[2017-11-19 12:31:42:146][Router2]: creating TCP socket...
+[2017-11-19 12:31:42:146][Router2]: TCP socket created!
+[2017-11-19 12:31:42:146][Router2]: TCP Port - 21000
+[2017-11-19 12:31:42:146][Router2]: creating UDP socket...
+[2017-11-19 12:31:42:146][Router2]: UDP socket created!
+[2017-11-19 12:31:42:146][Router2]: UDP Port - 13000
+[2017-11-19 12:31:42:146][Router2]: Connecting to manager <192.168.0.41>...
+[2017-11-19 12:31:42:146][Router2]: connected succssuflly to manager!
+[2017-11-19 12:31:42:146][Router2]: Sending to manager - Router[2] UDP Port - 13000
+[2017-11-19 12:31:42:146][Router2]: 	Message sent successfully!
+[2017-11-19 12:31:42:146][Router2]: Receiving from manager...
+[2017-11-19 12:31:42:146][Router2]: 	Received from manager - 2 1 40 |
+[2017-11-19 12:31:42:146][Router2]: Receiving from manager...
+[2017-11-19 12:31:42:146][Router2]: 	Received from manager - 1 12000 |0 11000 |3 14000 |2 13000 |
+[2017-11-19 12:31:42:146][Router2]: Sending to manager - READY!
+[2017-11-19 12:31:42:146][Router2]: 	Message sent successfully!
+[2017-11-19 12:31:42:146][Router2]: Receiving from manager...
+[2017-11-19 12:31:42:146][Router2]: 	Received from manager - SAVEACK
+[2017-11-19 12:31:42:146][Router2]: Sending to neighbors - Link request
+[2017-11-19 12:31:42:146][Router2]: 	Message sent successfully!

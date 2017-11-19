@@ -36,7 +36,7 @@ class Router {
 		void sendToManager( char* message);
 		char* receiveFromManager();
 		void writeToRouterFile(string filename, string message);
-		void sendToRouter(char* message); 
+		void sendToRouter(char* message,sockaddr_in serverUDP_addr); 
 		//------------
 		ofstream routerFile;
 
