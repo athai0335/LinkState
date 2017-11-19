@@ -295,7 +295,7 @@ void Router::routerProcess(){
 					routes nodeInfo;	
 					//cout<<"*********messageReceived: "<<messageReceived<<endl;
 					
-					/*string token;
+					string token;
 					string tok;
 					istringstream iss(messageReceived);
 					while(getline(iss, token, '|')){ 
@@ -320,9 +320,14 @@ void Router::routerProcess(){
 								
 							}
 					}
+					
+					//Extract neighbors
+					for(int i = 0; i < routerInfo.size(); i++){
+                        neighbors.push_back(routerInfo.at(i).nextHop);
+                    }
 
 					//------------------------------
-					for(int unsigned i=0; i<routerInfo.size(); i++){
+					/*for(int unsigned i=0; i<routerInfo.size(); i++){
 						cout<<"*************nodeAddress["<<i<<"]: "<<routerInfo.at(i).nodeAddress<<endl;
 						cout<<"**********nextHop["<<i<<"]: "<<routerInfo.at(i).nextHop<<endl;
 						cout<<"*************cost["<<i<<"]: "<<routerInfo.at(i).cost<<endl;
@@ -332,28 +337,63 @@ void Router::routerProcess(){
 
 					//--------------------------------------------
 
-					//-----send ready message to manager-------      
-					bzero(buffer,255); //clear the buffer
-		      			sprintf(buffer, "%s", "READY!");
-					sendToManager(buffer);
 					messageReturn = 1;
 				}
 					break;
+                    
+                case 1 :
+                {
+                    receiveFromManager();
+                    
+                    routerAndPort rp;
+                    //need to tokenize what is received to store node and corresponding udp port
+                    string token;
+					string tok;
+					istringstream stream(messageReceived);
+                    //cout << "MESSAGE RECEIVED: " << messageReceived << endl;
+                    //cout << "--------------" << endl;
+					while(getline(stream, token, '|')){ 
+                        //cout << "TOKEN^^^^^^^^^^^^^: " << token << endl;
+                        istringstream stream2(token);
+                        while(getline(stream2,tok,' ')){
+                            //cout << "TOK#########: " << tok << endl;
+                            rp.node = atoi(tok.c_str());
+                            
+                            getline(stream2,tok,' ');
+                            //cout << "TOK@@@@@@@@@: " << tok << endl;
+                            rp.udpPort = atoi(tok.c_str());
+                            
+                            routerPortTable.push_back(rp);
+                        }
+                    }
+                    //-----send ready message to manager-------      
+					bzero(buffer,255); //clear the buffer
+                    sprintf(buffer, "%s", "READY!");
+					sendToManager(buffer);
+                    messageReturn = 2;
+                }
+                    break;
 				
-				case 1 :
+				case 2 :
+                {
 					//----receive ACK from manager that it is save to reach neighbors-----------------
 					receiveFromManager(); 
+                    
+                    //----bind--------------------
+                    if(bind(routerUDPsock,(struct sockaddr *)&serverUDP_addr,sizeof(serverUDP_addr)) < 0){
+                        perror("bind in udp failed");
+                    }
 
 					//-----send a link request to each neighbor and wait for an ACK------
 					bzero(buffer,255); //clear the buffer
-		      			sprintf(buffer, "%s", "*********PROGRESS********!");
+		      			sprintf(buffer, "%s", "Sending link request");
 					sendToRouter(buffer);
 					
 			
 					//----------------------------
-					messageReturn = 2;
-					break;
-			
+                    messageReturn = 3;
+                }
+                    break;
 			}
 
 		}

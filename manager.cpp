@@ -367,6 +367,17 @@ string Manager::getRouterInfo(int nodeAddress) {
 	return returnInfo;
 }
 
+string Manager::convertRoutePortTable(){
+    string temp = "";
+    for(int i = 0; i < routerPortTable.size(); i++){
+        temp.append(to_string(routerPortTable.at(i).node));
+        temp.append(" ");
+        temp.append(to_string(routerPortTable.at(i).udpPort));
+        temp.append(" ");
+        temp.append("|");
+    }
+    return temp;
+}
 
 
 /********************************************************** 
@@ -414,6 +425,34 @@ void Manager::sendToRouter(){
 	}
 
 	
+}
+
+void Manager::sendRouterPortNum(){
+    char message[255];
+    string temp = "";
+    
+    if(isRoutersConnected()){
+        temp = convertRoutePortTable();
+        
+        //cout << "TEMP: " << temp << endl;
+        bzero(message,sizeof(message));
+        sprintf(message, "[Manager]: Sending routers all port numbers");
+        writeToManagerFile(message);
+        
+        for(int i=0; i<route.at(0).totalRoutes; i++){
+            
+            bzero(message, sizeof(message));
+            sprintf(message, "[Manager]:	Sending to router[%d] - %s",i,temp.c_str());
+            
+            writeToManagerFile(message);
+            
+            send(routerTCPsocket[i], temp.c_str(), 255, 0);
+            
+            bzero(message, sizeof(message));
+            sprintf(message, "[Manager]:    Router node address and udp sent successfully to router [%d]", route.at(i).nodeAddress);
+            writeToManagerFile(message);
+        }
+    }
 }
 
 //***************************Notify routers that it is safe to reach their neighbor************************
@@ -607,21 +646,29 @@ void Manager::managerProcess(){
 			//cout<<"***************buffer: "<<buffer<<endl;
 			string t =buffer;
 			string UDPstr = t.substr(t.find("-")+2);
-
+            //string node = t.substr(7,1);
+            //cout << "NODE: " << node << endl;
+            
 			char UDPbuff[255]; 
 			bzero(UDPbuff, sizeof(UDPbuff));
 			sprintf(UDPbuff, "%s", UDPstr.c_str());
 			//cout<<"**************t: "<<t.substr(t.find("-")+2)<<endl;
 
 			receivedUDP_Message.push_back(atoi(UDPbuff));
-			
+			//cout << "UDPbuff: " << UDPbuff << endl;
+            
 			//-------Extrsct the router number----------
 			int startPos = t.find("[")+1;
 			string routerNumRecieved = t.substr(startPos, t.find("]")-startPos);
 			//cout<<"***********routerNumRecieved: "<<routerNumRecieved<<endl;
 			
 			receivedRouterNum.push_back(atoi(routerNumRecieved.c_str()));
-			
+            
+			routerAndPort rp;
+            rp.node = atoi(routerNumRecieved.c_str());
+            rp.udpPort = atoi(UDPbuff);
+            routerPortTable.push_back(rp);
+            
 			//add new socket to array of sockets 
 			for (i = 0; i < route.at(0).totalRoutes; i++)  
 			{  
@@ -641,6 +688,7 @@ void Manager::managerProcess(){
 			
 			//send node address and connectivity table to routers
 			sendToRouter();
+            sendRouterPortNum();
 			//send(routerTCPsocket[0], "+++++++++welcome!", 255, 0);
 
 		}

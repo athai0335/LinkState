@@ -61,6 +61,8 @@ class Manager {
 		string getRouterInfo(int i);
 		bool isRoutersReady();
 		void sendSafeToProceed();
+        void sendRouterPortNum();
+        string convertRoutePortTable();
 		//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
 		string currentDateTime(){
 	
@@ -115,7 +117,12 @@ class Manager {
 
 		vector<packetInfo> packet; //to store the source and destination pair of the packet
 
-
+        struct routerAndPort{ //to store node and respective udp port number
+            int node;
+            int udpPort;
+        };
+        
+        vector<routerAndPort> routerPortTable;
 		
 
 

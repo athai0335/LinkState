@@ -1,0 +1,20 @@
+[2017-11-19 01:26:22:125][Router3]: Process started
+[2017-11-19 01:26:22:125][Router3]: creating TCP socket...
+[2017-11-19 01:26:22:125][Router3]: TCP socket created!
+[2017-11-19 01:26:22:125][Router3]: TCP Port - 21000
+[2017-11-19 01:26:22:125][Router3]: creating UDP socket...
+[2017-11-19 01:26:22:125][Router3]: UDP socket created!
+[2017-11-19 01:26:22:125][Router3]: UDP Port - 14000
+[2017-11-19 01:26:22:125][Router3]: Connecting to manager <192.168.0.41>...
+[2017-11-19 01:26:22:125][Router3]: connected succssuflly to manager!
+[2017-11-19 01:26:22:125][Router3]: Sending to manager - Router[3] UDP Port - 14000
+[2017-11-19 01:26:22:125][Router3]: 	Message sent successfully!
+[2017-11-19 01:26:22:125][Router3]: Receiving from manager...
+[2017-11-19 01:26:22:125][Router3]: 	Received from manager - 3 1 70 |
+[2017-11-19 01:26:22:125][Router3]: Receiving from manager...
+[2017-11-19 01:26:22:125][Router3]: 	Received from manager - 0 11000 |2 13000 |1 12000 |3 14000 |
+[2017-11-19 01:26:22:125][Router3]: Sending to manager - READY!
+[2017-11-19 01:26:22:125][Router3]: 	Message sent successfully!
+[2017-11-19 01:26:22:125][Router3]: Receiving from manager...
+[2017-11-19 01:26:22:125][Router3]: 	Received from manager - SAVEACK
+[2017-11-19 01:26:22:125][Router3]: Sending to neighbors - Sending link request

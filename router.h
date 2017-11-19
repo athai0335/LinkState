@@ -49,6 +49,14 @@ class Router {
 		};
 
 		vector<routes> routerInfo; //to store the X,Y,C of each nodes
+		vector<int> neighbors; //to store neighbors
+        
+        struct routerAndPort{
+            int node;
+            int udpPort;
+        };
+        
+        vector<routerAndPort> routerPortTable;
 		//--------------------
 };
 
