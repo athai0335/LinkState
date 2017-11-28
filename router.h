@@ -28,7 +28,7 @@
 
 using namespace std;
 
-
+#define MAXRoutes 5 //maximum size of routing table
 
 class Router {
 	public:
@@ -36,7 +36,10 @@ class Router {
 		void sendToManager( char* message);
 		char* receiveFromManager();
 		void writeToRouterFile(string filename, string message);
-		void sendToRouter(char* message); 
+		void sendToNeighbor(char* message); 
+		void receiveFromNeighbor();
+		void performLimitedBroadcast(char* message);
+		void filterOutDuplicatePacket();
 		//------------
 		ofstream routerFile;
 
@@ -46,6 +49,7 @@ class Router {
 			int nodeAddress; //nodeAddress(x) and nextHop(y) are node number between 0 and N-1 
 			int nextHop;
 			int cost; //cost(c) of a link between x and y
+			int neighborPort;
 		};
 
 		vector<routes> routerInfo; //to store the X,Y,C of each nodes
@@ -63,3 +67,4 @@ class Router {
 
 
 #endif
+

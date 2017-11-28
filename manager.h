@@ -38,11 +38,11 @@
 using namespace std;
 
 #define MAX_ROUTES 128 //maximum size of routing table
-#define MAX_ARGS 7 //the maximum number of argument the router is going to take. the last one hasto be NULL
+#define MAX_ARGS 8 //the maximum number of argument the router is going to take. the last one hasto be NULL
 #define BACKLOG 5 //how may pending connections queue will hold
 
 
-const int DEFAUL_TCP_PORT = 21000;
+const int DEFAUL_TCP_PORT = 20017;
 const int FixedBufferSize = 1024;
 
 
@@ -57,10 +57,12 @@ class Manager {
 		char* getManagerIPAddress();
 		void sendToRouter();
 		bool isRoutersConnected();
+		bool isRoutersLinkComplete();
 		void writeToManagerFile(string str);
 		string getRouterInfo(int i);
 		bool isRoutersReady();
 		void sendSafeToProceed();
+		void sendNetworkIsUP();
 		//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
 		string currentDateTime(){
 	
@@ -132,3 +134,4 @@ class Manager {
 
 
 #endif
+
