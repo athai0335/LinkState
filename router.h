@@ -57,6 +57,9 @@ class Router {
         };
         
         vector<routerAndPort> routerPortTable;
+        
+        //manage neighbor sockets
+        vector<sockaddr_in> neighborSockets;
 		//--------------------
 };
 

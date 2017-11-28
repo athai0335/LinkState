@@ -14,6 +14,7 @@ char messageHolder[255];
 int messageReturn = 0;
 int udpStatus = 0;
 string messageReceived;
+
 //*************************************************
 //------------------
 void Router::writeToRouterFile(string filename, string message){
@@ -249,10 +250,7 @@ void Router::routerProcess(){
         sprintf(udpPortBuffer, "Router[%d] UDP Port - %d", nodeAddress, udpPort);
 	sendToManager(udpPortBuffer);
 
-    //setup address for udp sender
-    struct sockaddr_in udpSender;
-    socklen_t addrlen = sizeof(udpSender);
-
+    
 	while(1)
 	{
 		//--------clear the socket set-------------
@@ -387,12 +385,24 @@ void Router::routerProcess(){
                     if(bind(routerUDPsock,(struct sockaddr *)&serverUDP_addr,sizeof(serverUDP_addr)) < 0){
                         perror("bind in udp failed");
                     }
+                    //Create sockaddr_in for each neighbor so that we can communicate with
+                    for(int i = 0; i < routerPortTable.size(); i++){
+                        if(routerPortTable[i].node != nodeAddress){
+                        sockaddr_in TempUDP_addr;
+                        memset(&TempUDP_addr, 0, sizeof(TempUDP_addr));
+                        TempUDP_addr.sin_family = AF_INET;
+                        TempUDP_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+                        TempUDP_addr.sin_port = htons(routerPortTable[i].udpPort);
+                        neighborSockets.push_back(TempUDP_addr);
+                        }
+                    }
 
-					//-----send a link request to each neighbor and wait for an ACK------
-					bzero(buffer,255); //clear the buffer
-                    sprintf(buffer, "%s", "Link request");
-					sendToRouter(buffer,serverUDP_addr);
-                    
+                    for(int i = 0; i < neighborSockets.size(); i++){
+                        //-----send a link request to each neighbor and wait for an ACK------
+                        bzero(buffer,255); //clear the buffer
+                        sprintf(buffer, "%s from Router[%d]", "Link request",nodeAddress);
+                        sendToRouter(buffer,neighborSockets[i]);
+                    }
 					//----------------------------
                     messageReturn = 3;
                 }
@@ -412,21 +422,48 @@ void Router::routerProcess(){
 			}
 
 		}
-
+        
+        //setup address for udp sender
+        struct sockaddr_in udpSender;
+        socklen_t addrlen = sizeof(udpSender);
 		//--If something happened on the Router UDP socket , 
 		//--then its an incoming connection from another router----
 		if (FD_ISSET(routerUDPsock, &readfds))  
-		{ 
-			
+		{
+            
 			switch(udpStatus){
-				case 0 :
+				case 0 :{
                     //recieve Link request
                     bzero(buffer,255); //clear the buffer
                     if(recvfrom(routerUDPsock,buffer,sizeof(buffer),0,(struct sockaddr*)&udpSender,&addrlen) < 0){
                         perror("ERROR RECEIVING UDP STATUS: 0");
                     }
-                    //cout << "Buffer: " << buffer << endl;
-
+                    //cout << "NODE ADD: " << nodeAddress << endl;
+                    char message[500];
+                    bzero(message,500);
+                    sprintf(message,"[Router%d]: Receiving from router - %s",nodeAddress,buffer);
+                    writeToRouterFile(RouterFileName,message);
+                    cout << "addrlen: " << addrlen << endl;
+                    
+                   /* //Send Link ACK
+                    bzero(buffer,255); //clear the buffer
+                    sprintf(buffer,"Link ACK from Router[%d]",nodeAddress);
+                    sendToRouter(buffer,udpSender);
+                    udpStatus = 1;*/
+                }
+                break;
+                
+                /*case 1 :{
+                    //receive Link ACK
+                    bzero(buffer,255); //clear the buffer
+                    if(recvfrom(routerUDPsock,buffer,sizeof(buffer),0,(struct sockaddr*)&udpSender,&addrlen) < 0){
+                        perror("ERROR RECEIVING UDP STATUS: 0");
+                    }
+                    //cout << "NODE ADD: " << nodeAddress << endl;
+                    string message = "[Router%d]: Receiving from router - ",nodeAddress;
+                    message.append(buffer);
+                    writeToRouterFile(RouterFileName,message);
+                }*/
 			}
 		}
 
