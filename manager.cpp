@@ -507,6 +507,33 @@ void Manager::sendNetworkIsUP(){
 	}
 }
 
+//********************Notify routers that all routers are done with limited broadcast******************
+void Manager::sendSAllRoutersBroadcastComplete(){
+	
+	char messageHolder[255];
+
+	if(isRoutersLinkComplete()){
+
+		bzero(messageHolder, sizeof(messageHolder));
+		sprintf(messageHolder, "[Manager]: All routers limited broacast complete!");
+		writeToManagerFile(messageHolder);
+		//--------------
+
+		for(int i=0; i<route.at(0).totalRoutes; i++){
+			//-------------
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]:	Sending to router[%d] - ALL_COMPLETE!",i);
+			writeToManagerFile(messageHolder);
+
+			send(routerTCPsocket[i], "ALL_COMPLETE!", 255, 0);
+
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]: 		ALL_COMPLETE! sent successfully to router [%d]",vecNodeAddress.at(i));
+			writeToManagerFile(messageHolder);
+		}
+
+	}
+}
 
 //****************** The manager communicates with the routers via TCP************************
 void Manager::managerProcess(){
@@ -555,7 +582,8 @@ void Manager::managerProcess(){
 
 	//-------bind the address of the current host and the port number--------------
 	if (bind(managerTCPsock, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0) {
-		fprintf(stderr, "Manager error on binding\n");
+		//fprintf(stderr, "Manager error on binding\n");
+		perror("Manager error on binding: ");
 		exit(1);
 	}
 
@@ -720,7 +748,7 @@ void Manager::managerProcess(){
 					//--------------Case where message receive is equal to READY!-----------------
 					if(strcmp(buffer, "READY!") == 0){
 						bzero(messageHolder, sizeof(messageHolder));
-						sprintf(messageHolder, "[Manager]: Received from router[%d] - READY!", i);
+						sprintf(messageHolder, "[Manager]: Received from router[%d] - Ready to accept link establishment requests from neighbor nodes", i);
 						writeToManagerFile(messageHolder);
 
 						//---------
@@ -731,8 +759,19 @@ void Manager::managerProcess(){
 
 					}
 		
-					
+					//--------------Case where message receive is equal to COMPLETE!-----------------
+					if(strcmp(buffer, "COMPLETE!") == 0){
+						bzero(messageHolder, sizeof(messageHolder));
+						sprintf(messageHolder, "[Manager]: Received from router[%d] - Limited Broadcast COMPLETE!", i);
+						writeToManagerFile(messageHolder);
+//cout<<"********************Router: "<<i<<endl;
+						//---------
+						totalLinkComplete.push_back(i);
+						//------
+						sendSAllRoutersBroadcastComplete();
 						
+
+					}
 					
 
 					

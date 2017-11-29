@@ -11,8 +11,8 @@ string managerIP;
 string dateTime;
 char RouterFileName[255];
 char messageHolder[255];
-int receivedRouter[5];
-int receivedLinkCount[5];
+int receivedRouter[100];
+int receivedLinkCount[100];
 int messageReturn = 0;
 string messageReceived;
 
@@ -34,13 +34,88 @@ void Router::writeToRouterFile(string filename, string message){
 	routerFile << dateTime <<message<<endl;
 	routerFile.close();
 }
+//*******************************************
+/*bool Router::isLinkEtablishmentComplete(){
+	bool status = false;
+	//---------------------------
+	for(int unsigned i=0; i< newRouterInfo.size(); i++){
+		//cout<<"****************receivedLinkedRequestCount["<<i<<"]: "<<receivedLinkedRequestCount[i]<<endl;
+		receivedLinkedRequestCount.push_back(1);
+
+	}
+
+	
+	//-------------------------
+	//cout<<"********************receivedLinkedRequestCount.size(): "<<receivedLinkedRequestCount.size()<<endl;
+	//cout<<"*****************************************newRouterInfo.size(): "<<newRouterInfo.size()<<endl;
+	if(receivedLinkedRequestCount.size() == newRouterInfo.size()){
+
+		status = true;
+	}
+	//cout<<"_____________________"<<endl;
+	return status;
+}*/
+
+//*******************************************
+bool Router::isLinkEtablishmentComplete(){
+	bool status = false;
+
+	int count = 1;
+
+	for(int i = 0; i < totalRouters; i++)
+	{	
+		//cout<<"*************receivedRouter["<<i<<"]: "<<receivedRouter[i]<<endl;
+		
+		if(receivedRouter[i] == 1){
+				    count++;
+		}
+	
+	}
+	cout<<"**********************************************nodeAddress: "<<nodeAddress<<endl;
+	//cout<<"************************************totalRouters: "<<totalRouters<<endl;
+	cout<<"*********************count: "<<count<<endl;
+
+	 if(count == totalRouters)
+	    {
+		//cout<<"*********************/////count: "<<count<<endl;
+		status = true;
+
+
+	    }
+
+	/*//---------------------------
+	//cout<<"************receivedRouter: "<<sizeof(receivedRouter)/sizeof(receivedRouter[0])<<endl;
+	for(int unsigned i=0; i< sizeof(receivedRouter)/sizeof(receivedRouter[0]); i++){
+		//cout<<"*************receivedRouter["<<i<<"]: "<<receivedRouter[i]<<endl;
+		if(receivedRouter[i] == 1){
+			receivedLinkedRequestCount.push_back(1);
+		}
+	}
+
+	//cout<<"***********************Size: "<<receivedLinkedRequestCount.size()<<endl;
+	//cout<<"***********************totalRouters: "<<totalRouters<<endl;
+	//-------------------------
+	if(receivedLinkedRequestCount.size() == (unsigned)totalRouters){
+		//cout<<"*************complete*******\n";
+		status = true;
+	}*/
+	cout<<"_____________________"<<endl;
+
+	return status;
+}
+//*******************************************
 
 //************************************************
 void Router::performLimitedBroadcast(char* message){
-
+//char buf[255];
 	//cout<<"***************************size: "<<routerInfo.size()<<endl;
 	for(int unsigned i = 0; i < routerInfo.size(); i++)
 	{
+
+			/*bzero(buf, sizeof(buf));
+			sprintf(buf, "[Router%d]: %s", nodeAddress, message);
+			cout<<buf<<endl;*/
+
 		if(routerInfo.at(i).neighborPort != portReceived)
 		{	
 			/*cout<<"****************************************Node: "<<routerInfo.at(i).nodeAddress<<endl;
@@ -49,34 +124,64 @@ void Router::performLimitedBroadcast(char* message){
 			cout<<"************************************neighbor: "<<neighborAddress<<endl;
 			cout<<"*********************message: "<<message<<endl;*/
 
-			//if(routerInfo.at(i).nextHop == neighborAddress){
+
 			neighborAddress = routerInfo.at(i).nextHop;
 
 			bzero(messageHolder, sizeof(messageHolder));
-			sprintf(messageHolder, "[Router%d]: Fowarding Link State Packet to Neighbor Router[%d] - %s", nodeAddress, neighborAddress, message);
+			sprintf(messageHolder, "[Router%d]: Forwarding Link State Packet to Neighbor Router[%d] - %s", nodeAddress, neighborAddress, message);
 			writeToRouterFile(RouterFileName, messageHolder);
-
+	
 			sendToNeighbor(message);
-			//}
+			
 
 		}
 	}
-			
-	//cout<<"------------------------"<<endl;
+	//cout<<"_________________________________"<<endl;
 
 
 }
-//********************************************8
+
+//********************************************
 void Router::filterOutDuplicatePacket()
 {
+	int nodeAddress2=0;
+	int nextHop=0;
 	char buffer[255];
 
-    for(int unsigned i = 0; i < routerInfo.size(); i++)
-    {
-        sprintf(buffer, "Node: %d Dest: %d cost: %d neighborPort: %d",routerInfo[i].nodeAddress,routerInfo[i].nextHop,routerInfo[i].cost,routerInfo[i].neighborPort);
-       // cout<<"*******************buffer: "<<buffer<<endl;
-    }
-	cout<<"----------------------"<<endl;
+	//---------------------------------
+	bzero(messageHolder, sizeof(messageHolder));
+	sprintf(messageHolder, "[Router%d]: Routing Table after filtering out duplicates", nodeAddress);
+	writeToRouterFile(RouterFileName, messageHolder);
+
+	//------------------------------
+	for(int unsigned i = 0; i < newRouterInfo.size(); i++)
+	{
+
+		nodeAddress2 = newRouterInfo[i].nodeAddress;
+		nextHop = newRouterInfo[i].nextHop;
+		for(int unsigned j = i + 1; j < newRouterInfo.size(); j++)
+		{
+		    if((newRouterInfo[j].nodeAddress == nextHop) && (newRouterInfo[j].nextHop == nodeAddress2))
+		    {
+			newRouterInfo.erase(newRouterInfo.begin() + j);
+		    }
+		    if((newRouterInfo[j].nodeAddress == nodeAddress2) && (newRouterInfo[j].nextHop == nextHop))
+		    {
+			newRouterInfo.erase(newRouterInfo.begin() + j);
+		    }
+
+		}
+	}
+
+	//-------------------------------------
+ 	for(int unsigned i = 0; i < newRouterInfo.size(); i++)
+	{
+		bzero(buffer, sizeof(buffer));
+		sprintf(buffer, "[Router%d]: 	|Node: %d |Dest: %d |cost: %d|",nodeAddress, newRouterInfo[i].nodeAddress,newRouterInfo[i].nextHop,newRouterInfo[i].cost);
+		//cout<<"*******************buffer: "<<buffer<<endl;
+		writeToRouterFile(RouterFileName, buffer);
+	}
+	//cout<<"_______________________________________________________"<<endl;
 }
 
 
@@ -155,7 +260,7 @@ void Router::receiveFromNeighbor(){
 	//recieve Link request
 	bzero(buffer,255); //clear the buffer
 	if(recvfrom(routerUDPsock,buffer,sizeof(buffer),0,(struct sockaddr*)&udpSender,&addrlen) < 0){
-		perror("ERROR RECEIVING UDP STATUS: 0");
+		perror("ERROR RECEIVING UDP STATUS: ");
 	}
 	//cout<<"**********buffer: "<<buffer<<endl;	
 	//---------------
@@ -174,14 +279,92 @@ void Router::receiveFromNeighbor(){
 	//cout<<"***************nodeAddress: "<<nodeAddress<<endl;
 	
 	if(atoi(routerNum.c_str()) != nodeAddress){
+
+		//cout<<"**********buffer: "<<buffer<<endl;	
 		
+
 		bzero(messageHolder, sizeof(messageHolder));
 		sprintf(messageHolder, "[Router%d]: 	Received from Neighbor %s", nodeAddress,buffer);
 		writeToRouterFile(RouterFileName, messageHolder);
+
+		//--------------------
+		/*routes tempNodeInfo;
+		for(int unsigned i = 0; i < routerInfo.size(); i++)
+		{	
+			tempNodeInfo.nodeAddress = routerInfo.at(i).nodeAddress;
+			newRouterInfo.push_back(tempNodeInfo);
+
+			tempNodeInfo.nextHop = routerInfo.at(i).nextHop;
+			newRouterInfo.push_back(tempNodeInfo);
+
+			tempNodeInfo.cost = routerInfo.at(i).cost;
+			newRouterInfo.push_back(tempNodeInfo);
+
+			tempNodeInfo.neighborPort = routerInfo.at(i).neighborPort;
+			newRouterInfo.push_back(tempNodeInfo);
+		}*/
+
+		//--------------------
+		cout<<"//////////////////////////////////////////////////////////////////////////Router: "<<nodeAddress<<endl;
+				//cout<<"**********buffer: "<<buffer<<endl;	
+
+		//char temBuf [255];
+		string holder = buffer;			
+		//cout<<"***********************holder: "<<holder<<endl;
+		int startPos = holder.find("-")+2;
+		string newMessage = holder.substr(startPos);
+		//cout<<"***********************newMessage: "<<newMessage<<endl;
+
+		//----------------
+		routes nodeInfo2;
+		string token;
+		string tok;
+		istringstream iss(newMessage);
+		while(getline(iss, token, '|')){ 
+			//cout<<"**********token: "<<token<<endl;
+			istringstream iss2(token);
+			while(getline(iss2, tok, ' ')){ 
+				//cout<<"**********tok x: "<< tok<<endl;
+				nodeInfo2.nodeAddress = atoi(tok.c_str());
+
+				//--------------------
+				getline(iss2, tok, ' ');
+				//cout<<"*********tok y: "<<tok<<endl;
+				nodeInfo2.nextHop = atoi(tok.c_str());
+
+				//-------------------
+				getline(iss2, tok, ' ');
+				//cout<<"*********tok c: "<<tok<<endl;
+				nodeInfo2.cost = atoi(tok.c_str());
+
+				//-------------------
+				getline(iss2, tok, ' ');
+				//cout<<"*********tok port: "<<tok<<endl;
+				nodeInfo2.neighborPort = atoi(tok.c_str());
+
+				//--------------
+				newRouterInfo.push_back(nodeInfo2);
+				//--------------
+				//mapOfRouterInfos.push_back(newRouterInfo);
+				
+			}
+		}
 	}
-	
-	//----------------------	
-	
+	//cout<<"__________________________________________________"<<endl;
+	//----------------------
+
+	//cout<<"******************************************************************newRouterInfo.size(): "<<routerInfo.size()<<endl;
+	for(int unsigned i = 0; i < newRouterInfo.size(); i++)
+	{
+		bzero(buffer, sizeof(buffer));
+		sprintf(buffer, "[Router%d]: 	|Node: %d |Dest: %d |cost: %d|",nodeAddress, newRouterInfo[i].nodeAddress,newRouterInfo[i].nextHop,newRouterInfo[i].cost);
+		cout<<"*******************buffer: "<<buffer<<endl;
+
+		//writeToRouterFile(RouterFileName, buffer);
+	}
+	//cout<<"************************************************size: "<<mapOfRouterInfos.size()<<endl;
+
+	cout<<"----------------------------------------------------------------------------------"<<endl;
 	
 	
 
@@ -203,7 +386,6 @@ char* Router::receiveFromManager(){
 	bzero(messageHolder, sizeof(messageHolder));
 	sprintf(messageHolder, "[Router%d]: Receiving from manager...", nodeAddress);
 	writeToRouterFile(RouterFileName, messageHolder);	
-
 	//---------------------------
 	bzero(messageHolder, sizeof(messageHolder));
 	sprintf(messageHolder, "[Router%d]: 	Received from manager - %s", nodeAddress, buffer);
@@ -455,11 +637,22 @@ void Router::routerProcess(){
 						}
 				}
 				
+				if(messageReceived == "ALL_COMPLETE!"){
 
-				//-----------------------------------send ready message to manager-----------------------------------------
-				bzero(buffer,255); //clear the buffer
-      				sprintf(buffer, "%s", "READY!");
-				sendToManager(buffer);
+					filterOutDuplicatePacket();
+
+					
+				}
+				else{
+					//-----------------------------------send ready message to manager-----------------------------------------
+					bzero(buffer,255); //clear the buffer
+	      				sprintf(buffer, "%s", "READY!");
+					sendToManager(buffer);
+				}
+
+
+
+				
 			
 				
 				//-------Wait for the manager to indicate that all links from all routers have been established and the network is up------
@@ -508,7 +701,8 @@ void Router::routerProcess(){
 				//cout<<"**********************nodeAddress: "<<nodeAddress<<endl;
 				//cout<<"*****************linkReceived: "<<linkReceived<<endl;
 				//-------Extract the router number----------
-				int startPos = linkReceived.find("[")+1;
+				//cout<<"************linkReceived: "<<linkReceived<<endl;
+				int startPos = linkReceived.find("[")+7;
 				string routerNumRecieved = linkReceived.substr(startPos, linkReceived.find("]")-startPos);
 				//cout<<"***********routerNumRecieved: "<<atoi(routerNumRecieved.c_str())<<endl;
 
@@ -520,7 +714,16 @@ void Router::routerProcess(){
 				bzero(buffer,255); //clear the buffer 
 	      			sprintf(buffer, "%s", linkReceived.c_str());
 				performLimitedBroadcast(buffer);
-			//filterOutDuplicatePacket();
+				
+
+
+				if(isLinkEtablishmentComplete()){
+					char buffer[255];
+					bzero(buffer, sizeof(buffer));
+					sprintf(buffer, "COMPLETE!");
+					sendToManager(buffer);
+				}
+				
 			
 			
 

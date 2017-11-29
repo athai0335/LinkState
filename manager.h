@@ -42,7 +42,7 @@ using namespace std;
 #define BACKLOG 5 //how may pending connections queue will hold
 
 
-const int DEFAUL_TCP_PORT = 20017;
+const int DEFAUL_TCP_PORT = 20018;
 const int FixedBufferSize = 1024;
 
 
@@ -63,6 +63,8 @@ class Manager {
 		bool isRoutersReady();
 		void sendSafeToProceed();
 		void sendNetworkIsUP();
+		void sendSAllRoutersBroadcastComplete();
+		
 		//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
 		string currentDateTime(){
 	

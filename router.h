@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <getopt.h>
-#include<stdbool.h>
+#include <stdbool.h>
 #include  <sys/types.h>
 
 #include <string>
@@ -40,6 +40,7 @@ class Router {
 		void receiveFromNeighbor();
 		void performLimitedBroadcast(char* message);
 		void filterOutDuplicatePacket();
+		bool isLinkEtablishmentComplete();
 		//------------
 		ofstream routerFile;
 
@@ -54,6 +55,9 @@ class Router {
 
 		vector<routes> routerInfo; //to store the X,Y,C of each nodes
 		//--------------------
+
+		vector<routes> newRouterInfo;
+		vector<vector<routes>> mapOfRouterInfos;
 };
 
 
