@@ -4,7 +4,7 @@
 
 int udpPort;
 int tcpPort;
-int routerTCPsock;
+int routerTCPsock; 
 int routerUDPsock;
 int nodeAddress;
 string managerIP;
@@ -27,6 +27,101 @@ int portReceived;
 
 
 vector<string> messageReceivedVec;
+
+
+vector<int> vecSize;
+
+
+
+
+
+
+
+
+
+//Returns true if there is a link between a and b
+int Router::returnCost(int a,int b){
+    for(int unsigned i = 0; i < newRouterInfo.size(); i++){
+        if((newRouterInfo[i].nodeAddress == a) && (newRouterInfo[i].nextHop == b)){
+            return newRouterInfo[i].cost;
+        }
+        else if((newRouterInfo[i].nodeAddress == b) && (newRouterInfo[i].nextHop == a)){
+            return newRouterInfo[i].cost;
+        }
+    }
+    return 0;
+}
+
+////Referenced website:http://www.geeksforgeeks.org/greedy-algorithms-set-6-dijkstras-shortest-path-algorithm/
+int Router::minDistance(int dist[], bool sptSet[]){
+    int size = totalRouters;
+    //Initialize min value
+    int min = INT_MAX, min_index;
+    
+    for(int i = 0; i < size; i++){
+        if(sptSet[i] == false && dist[i] <= min){
+            min = dist[i];
+            min_index = i;
+        }
+    }
+    return min_index;
+}
+
+void Router::printShortestPath(int dist[],int size){
+    printf("|Node	|Cost	|Source| \n");
+
+	bzero(messageHolder, sizeof(messageHolder));
+	sprintf(messageHolder, "[Router%d]:  |Node   |Cost   |Source|", nodeAddress);
+	writeToRouterFile(RouterFileName, messageHolder);
+
+    for(int i = 0; i < size; i++){
+        printf(" %d \t %d \t %d\n", i, dist[i], nodeAddress);		
+
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Router%d]:	%d \t %d \t %d", nodeAddress,  i, dist[i], nodeAddress);
+			writeToRouterFile(RouterFileName, messageHolder);
+
+    }
+}
+
+//Referenced website:http://www.geeksforgeeks.org/greedy-algorithms-set-6-dijkstras-shortest-path-algorithm/
+void Router::findShortestPath(int src){
+    int size = totalRouters;
+    int dist[size]; //dist[i] holds shortest distance from src to i
+    
+    bool sptSet[size]; //holds true if node i included in shortest path
+    
+    //Initialize all distances as infinite and spSet to false
+    for(int i = 0; i < size; i++){
+        dist[i] = INT_MAX;
+        sptSet[i] = false;
+    }
+    
+    //distance from source node to itself always 0
+    dist[src] = 0;
+    
+    //find shortest path for all nodes
+    for(int i = 0; i < size-1; i++){
+        //Pick min distance node from set of nodes not yet processed
+        int u = minDistance(dist,sptSet);
+        //Mark picked node as processed
+        sptSet[u] = true;
+        
+        //update dist value of adjacent nodes of picked node
+        for(int j = 0; j < size; j++){
+            //update dist[j] only if not in sptSet, if there is edge
+            //between u and j, and total weight of path from src to j
+            //through u is smaller than current value of dist[j]
+            if(!sptSet[j] && returnCost(u,j) && dist[u] != INT_MAX && dist[u] + returnCost(u,j) < dist[j]){
+                dist[j] = dist[u] + returnCost(u,j);
+            }
+        }
+    }
+    printShortestPath(dist,size);
+}
+
+
+
 
 //*************************************************
 void Router::writeToRouterFile(string filename, string message){
@@ -60,7 +155,7 @@ void Router::writeToRouterFile(string filename, string message){
 bool Router::isLinkEtablishmentComplete(){
 	bool status = false;
 
-	int count = 1;
+	int count = 0;
 
 	for(int i = 0; i < totalRouters; i++)
 	{	
@@ -71,35 +166,25 @@ bool Router::isLinkEtablishmentComplete(){
 		}
 	
 	}
-	cout<<"**********************************************nodeAddress: "<<nodeAddress<<endl;
+	//cout<<"**********************************************nodeAddress: "<<nodeAddress<<endl;
 	//cout<<"************************************totalRouters: "<<totalRouters<<endl;
-	cout<<"*********************count: "<<count<<endl;
+	//cout<<"*********************count: "<<count<<endl;
+
+	/*if(count == totalRouters-1)
+	    {
+
+		status = true;
+
+
+	    }*/
 
 	 if(count == totalRouters)
 	    {
-		//cout<<"*********************/////count: "<<count<<endl;
+
 		status = true;
 
 
 	    }
-
-	/*//---------------------------
-	//cout<<"************receivedRouter: "<<sizeof(receivedRouter)/sizeof(receivedRouter[0])<<endl;
-	for(int unsigned i=0; i< sizeof(receivedRouter)/sizeof(receivedRouter[0]); i++){
-		//cout<<"*************receivedRouter["<<i<<"]: "<<receivedRouter[i]<<endl;
-		if(receivedRouter[i] == 1){
-			receivedLinkedRequestCount.push_back(1);
-		}
-	}
-
-	//cout<<"***********************Size: "<<receivedLinkedRequestCount.size()<<endl;
-	//cout<<"***********************totalRouters: "<<totalRouters<<endl;
-	//-------------------------
-	if(receivedLinkedRequestCount.size() == (unsigned)totalRouters){
-		//cout<<"*************complete*******\n";
-		status = true;
-	}*/
-	cout<<"_____________________"<<endl;
 
 	return status;
 }
@@ -153,6 +238,7 @@ void Router::filterOutDuplicatePacket()
 	sprintf(messageHolder, "[Router%d]: Routing Table after filtering out duplicates", nodeAddress);
 	writeToRouterFile(RouterFileName, messageHolder);
 
+//cout<<"//////////////////////////////////////////////////////////////////////////Router: "<<nodeAddress<<endl;
 	//------------------------------
 	for(int unsigned i = 0; i < newRouterInfo.size(); i++)
 	{
@@ -161,20 +247,26 @@ void Router::filterOutDuplicatePacket()
 		nextHop = newRouterInfo[i].nextHop;
 		for(int unsigned j = i + 1; j < newRouterInfo.size(); j++)
 		{
-		    if((newRouterInfo[j].nodeAddress == nextHop) && (newRouterInfo[j].nextHop == nodeAddress2))
-		    {
-			newRouterInfo.erase(newRouterInfo.begin() + j);
-		    }
-		    if((newRouterInfo[j].nodeAddress == nodeAddress2) && (newRouterInfo[j].nextHop == nextHop))
-		    {
-			newRouterInfo.erase(newRouterInfo.begin() + j);
-		    }
+			if((newRouterInfo[j].nodeAddress == nextHop) && (newRouterInfo[j].nextHop == nodeAddress2))
+			{
+				newRouterInfo.erase(newRouterInfo.begin() + j);
+			}
+			if((newRouterInfo[j].nodeAddress == nodeAddress2) && (newRouterInfo[j].nextHop == nextHop))
+			{
+				newRouterInfo.erase(newRouterInfo.begin() + j);
+			}
+			if((newRouterInfo[j].cost == 0) && (newRouterInfo[j].nextHop == 0) && (newRouterInfo[j].nodeAddress == 0)  ){
+				newRouterInfo.erase(newRouterInfo.begin() + j);
+			}
+			
 
 		}
 	}
 
 	//-------------------------------------
- 	for(int unsigned i = 0; i < newRouterInfo.size(); i++)
+	//cout<<"++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++vecSize: "<<vecSize.size()<<endl;
+ 	//for(int unsigned i = 0; i < vecSize.size()+1; i++)
+	for(int unsigned i = 0; i < newRouterInfo.size(); i++)
 	{
 		bzero(buffer, sizeof(buffer));
 		sprintf(buffer, "[Router%d]: 	|Node: %d |Dest: %d |cost: %d|",nodeAddress, newRouterInfo[i].nodeAddress,newRouterInfo[i].nextHop,newRouterInfo[i].cost);
@@ -277,7 +369,8 @@ void Router::receiveFromNeighbor(){
 	string routerNum = temp.substr(startPos, temp.find("]")-startPos);
 	//cout<<"*****************routerNum: "<<atoi(routerNum.c_str())<<endl;
 	//cout<<"***************nodeAddress: "<<nodeAddress<<endl;
-	
+
+
 	if(atoi(routerNum.c_str()) != nodeAddress){
 
 		//cout<<"**********buffer: "<<buffer<<endl;	
@@ -287,32 +380,18 @@ void Router::receiveFromNeighbor(){
 		sprintf(messageHolder, "[Router%d]: 	Received from Neighbor %s", nodeAddress,buffer);
 		writeToRouterFile(RouterFileName, messageHolder);
 
+	
 		//--------------------
-		/*routes tempNodeInfo;
-		for(int unsigned i = 0; i < routerInfo.size(); i++)
-		{	
-			tempNodeInfo.nodeAddress = routerInfo.at(i).nodeAddress;
-			newRouterInfo.push_back(tempNodeInfo);
-
-			tempNodeInfo.nextHop = routerInfo.at(i).nextHop;
-			newRouterInfo.push_back(tempNodeInfo);
-
-			tempNodeInfo.cost = routerInfo.at(i).cost;
-			newRouterInfo.push_back(tempNodeInfo);
-
-			tempNodeInfo.neighborPort = routerInfo.at(i).neighborPort;
-			newRouterInfo.push_back(tempNodeInfo);
-		}*/
-
-		//--------------------
-		cout<<"//////////////////////////////////////////////////////////////////////////Router: "<<nodeAddress<<endl;
+		//cout<<"//////////////////////////////////////////////////////////////////////////Router: "<<nodeAddress<<endl;
+		//cout<<"+++++++++++++++++Node: "<<nodeAddress<<" Dest: "<<routerInfo[nodeAddress].nextHop<<" Cost: "<<routerInfo[nodeAddress].cost<<endl;
+		vecSize.push_back(nodeAddress);
 				//cout<<"**********buffer: "<<buffer<<endl;	
 
 		//char temBuf [255];
 		string holder = buffer;			
 		//cout<<"***********************holder: "<<holder<<endl;
-		int startPos = holder.find("-")+2;
-		string newMessage = holder.substr(startPos);
+		int start = holder.find("-")+2;
+		string newMessage = holder.substr(start);
 		//cout<<"***********************newMessage: "<<newMessage<<endl;
 
 		//----------------
@@ -345,26 +424,29 @@ void Router::receiveFromNeighbor(){
 				//--------------
 				newRouterInfo.push_back(nodeInfo2);
 				//--------------
-				//mapOfRouterInfos.push_back(newRouterInfo);
+				mapOfRouterInfos.push_back(newRouterInfo);
 				
 			}
 		}
 	}
-	//cout<<"__________________________________________________"<<endl;
+
 	//----------------------
 
+	//cout<<"*******************************************************************************vecSize: "<<vecSize.size()<<endl;
 	//cout<<"******************************************************************newRouterInfo.size(): "<<routerInfo.size()<<endl;
 	for(int unsigned i = 0; i < newRouterInfo.size(); i++)
 	{
 		bzero(buffer, sizeof(buffer));
 		sprintf(buffer, "[Router%d]: 	|Node: %d |Dest: %d |cost: %d|",nodeAddress, newRouterInfo[i].nodeAddress,newRouterInfo[i].nextHop,newRouterInfo[i].cost);
-		cout<<"*******************buffer: "<<buffer<<endl;
+		//cout<<"*******************buffer: "<<buffer<<endl;
+		//if(isLinkEtablishmentComplete()){
+			//writeToRouterFile(RouterFileName, buffer);
+		//}
 
-		//writeToRouterFile(RouterFileName, buffer);
 	}
 	//cout<<"************************************************size: "<<mapOfRouterInfos.size()<<endl;
 
-	cout<<"----------------------------------------------------------------------------------"<<endl;
+	//cout<<"----------------------------------------------------------------------------------"<<endl;
 	
 	
 
@@ -633,6 +715,7 @@ void Router::routerProcess(){
 
 							//--------------
 							routerInfo.push_back(nodeInfo);
+							newRouterInfo.push_back(nodeInfo);
 							
 						}
 				}
@@ -640,10 +723,16 @@ void Router::routerProcess(){
 				if(messageReceived == "ALL_COMPLETE!"){
 
 					filterOutDuplicatePacket();
-
+					
+					bzero(buffer,255); //clear the buffer
+	      				sprintf(buffer, "%s", "TABLE_READY!");
+					sendToManager(buffer);
+								
 					
 				}
 				else{
+					//receiveFromManager(); 
+								//cout<<"*****************messageReceived : "<<messageReceived<<endl;
 					//-----------------------------------send ready message to manager-----------------------------------------
 					bzero(buffer,255); //clear the buffer
 	      				sprintf(buffer, "%s", "READY!");
@@ -651,7 +740,7 @@ void Router::routerProcess(){
 				}
 
 
-
+	
 				
 			
 				
@@ -685,7 +774,15 @@ void Router::routerProcess(){
 						
 					
 				}
+				if(messageReceived == "LSP!"){
+					
+					bzero(messageHolder, sizeof(messageHolder));
+					sprintf(messageHolder, "[Router%d]: Shortest Path Table", nodeAddress);
+					writeToRouterFile(RouterFileName, messageHolder);
+					findShortestPath(nodeAddress);
+				}
 				
+
 			
 
 		}

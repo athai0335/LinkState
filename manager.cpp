@@ -13,6 +13,10 @@ vector<int> totalLinkComplete;
 
 int tempNodeAddress;
 vector<int> vecNodeAddress;
+
+vector<int> totalTableComplete;
+
+
 //------------------
 void Manager::writeToManagerFile(string str){
 	
@@ -55,6 +59,7 @@ bool Manager::isRoutersReady()
 	
 	return status;
 }
+
 //*******************************************************************************
 bool Manager::isRoutersLinkComplete()
 {
@@ -72,7 +77,27 @@ bool Manager::isRoutersLinkComplete()
 	return status;
 }
 
+//******************************************************************
 
+bool Manager::isAllTableComplete()
+{
+
+	bool status = false;
+	//cout<<"**************totalTableComplete.size(): "<<totalTableComplete.size()<<endl;
+	if(totalTableComplete.size() == (unsigned) route.at(0).totalRoutes){
+
+		status = true;
+	
+	}
+	else{
+		status = false;
+	}
+
+	
+	return status;
+
+
+}
 
 //**************************Manager IP Address*****************************************
 char* Manager::getManagerIPAddress(){
@@ -507,6 +532,35 @@ void Manager::sendNetworkIsUP(){
 	}
 }
 
+//***********************************************************8
+
+void Manager::sendSAllBuildPath(){
+	char messageHolder[255];
+
+	if(isAllTableComplete()){
+
+		bzero(messageHolder, sizeof(messageHolder));
+		sprintf(messageHolder, "[Manager]: All routers Table build complete!");
+		writeToManagerFile(messageHolder);
+		//--------------
+
+		for(int i=0; i<route.at(0).totalRoutes; i++){
+			//-------------
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]:	Sending to router[%d] - calculate the shortest path tree!",i);
+			writeToManagerFile(messageHolder);
+
+			send(routerTCPsocket[i], "LSP!", 255, 0);
+
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]: 		calculate the shortest path tree! sent successfully to router [%d]",vecNodeAddress.at(i));
+			writeToManagerFile(messageHolder);
+		}
+
+	}
+}
+
+
 //********************Notify routers that all routers are done with limited broadcast******************
 void Manager::sendSAllRoutersBroadcastComplete(){
 	
@@ -773,7 +827,20 @@ void Manager::managerProcess(){
 
 					}
 					
+					if(strcmp(buffer, "TABLE_READY!") == 0){
+						bzero(messageHolder, sizeof(messageHolder));
+						sprintf(messageHolder, "[Manager]: Received from router[%d] - Ready to start shortest path table", i);
+						writeToManagerFile(messageHolder);
 
+
+						//cout<<"*************Router["<<i<<"]: "<<"Ready to start shortest path table"<<endl;
+						//---------
+						totalTableComplete.push_back(i);
+						//------
+						sendSAllBuildPath();
+						
+
+					}
 					
 					
 				}

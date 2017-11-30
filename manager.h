@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <strings.h>
-#include <string.h>
+#include <string.h> 
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -64,7 +64,8 @@ class Manager {
 		void sendSafeToProceed();
 		void sendNetworkIsUP();
 		void sendSAllRoutersBroadcastComplete();
-		
+		bool isAllTableComplete();
+		void sendSAllBuildPath();
 		//************* Get current date/time, format is %Y-%m-%d (%F) H:M:S (%X)**********************
 		string currentDateTime(){
 	

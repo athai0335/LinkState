@@ -25,7 +25,7 @@
 #include <fstream>
 #include <vector>
 #include <sys/time.h>
-
+#include <climits>
 using namespace std;
 
 #define MAXRoutes 5 //maximum size of routing table
@@ -41,6 +41,10 @@ class Router {
 		void performLimitedBroadcast(char* message);
 		void filterOutDuplicatePacket();
 		bool isLinkEtablishmentComplete();
+  	void findShortestPath(int src);
+        int minDistance(int dist[], bool sptSet[]);
+        int returnCost(int a,int b);
+        void printShortestPath(int dist[],int n);
 		//------------
 		ofstream routerFile;
 
