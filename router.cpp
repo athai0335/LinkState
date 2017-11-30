@@ -684,7 +684,11 @@ void Router::routerProcess(){
 				//---------------
 				messageTosend.push_back(messageReceived);
 				//cout<<"*****************messageReceived NodeAddress: "<<messageReceived<<endl;
-
+				
+				int pos = messageReceived.find("");
+				string packetReceived = messageReceived.substr(pos, messageReceived.find(" ")-pos);
+				//cout<<"***********packetReceived: "<<packetReceived<<endl;		
+				
 				//-------------Extract informations from the message received--------------
 				routes nodeInfo;	
 				
@@ -728,6 +732,28 @@ void Router::routerProcess(){
 	      				sprintf(buffer, "%s", "TABLE_READY!");
 					sendToManager(buffer);
 								
+					
+				}
+				else if(messageReceived == "OriginatePacket!"){
+				
+				}
+				else if(packetReceived == "Packet:"){
+					//cout<<"*****************************************Received: "<<messageReceived<<endl;
+					
+					int p = messageReceived.find(":")+2;
+					string packetSource = messageReceived.substr(p, messageReceived.find("|")-p);
+					//cout<<"*******************************************packetSource: "<<packetSource<<endl;
+					//--------------
+					string packetDest = messageReceived.substr(messageReceived.find("|")+2);
+					cout<<"*******************************************packetDest: "<<packetDest<<endl;
+					//----------------
+					if(atoi(packetDest.c_str()) == nodeAddress){
+						cout<<"****************************nodeAddress: "<<nodeAddress<<endl;
+							//--------------
+						bzero(buffer,255); //clear the buffer
+	      					sprintf(buffer, "%s", "PACKECT_REVEIVED!");
+						sendToManager(buffer);
+					}
 					
 				}
 				else{
@@ -780,9 +806,13 @@ void Router::routerProcess(){
 					sprintf(messageHolder, "[Router%d]: Shortest Path Table", nodeAddress);
 					writeToRouterFile(RouterFileName, messageHolder);
 					findShortestPath(nodeAddress);
+			
+					bzero(buffer,255); //clear the buffer
+	      				sprintf(buffer, "%s", "LSP_BUILT!");
+					sendToManager(buffer);
 				}
 				
-
+				
 			
 
 		}
@@ -867,4 +897,3 @@ int main(int argc, char *argv[]) {
 
 	return 0;
 }
-

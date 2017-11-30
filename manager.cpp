@@ -16,6 +16,10 @@ vector<int> vecNodeAddress;
 
 vector<int> totalTableComplete;
 
+vector<int> totalDijkstraComplete;
+
+int numOfPacketsTOsend = 0;
+
 
 //------------------
 void Manager::writeToManagerFile(string str){
@@ -98,6 +102,28 @@ bool Manager::isAllTableComplete()
 
 
 }
+//*************************************************
+
+bool Manager::isDijkstraComplete()
+{
+
+	bool status = false;
+	//cout<<"**************totalDijkstraComplete.size(): "<<totalDijkstraComplete.size()<<endl;
+	if(totalDijkstraComplete.size() == (unsigned) route.at(0).totalRoutes){
+
+		status = true;
+	
+	}
+	else{
+		status = false;
+	}
+
+	
+	return status;
+
+
+}
+
 
 //**************************Manager IP Address*****************************************
 char* Manager::getManagerIPAddress(){
@@ -244,7 +270,16 @@ void Manager::readTopologyFile(string topologyFile){
 	}
 	cout<<"----------------------"<<endl;
 
+	
+
+	//------------------------------
+	for(int unsigned i=0; i<routeInfo.vecOfNodesInfo.size(); i++){
+		cout<<"****************vecOfNodesInfo["<< i<<"]: "<<routeInfo.vecOfNodesInfo.at(i)<<endl;
+	}	*/
+
+
 	//---------------------------------
+	/*cout<<"**************************packet.size(): "<<packet.size()<<endl;
 	for(int unsigned i=0; i<packet.size(); i++){
 		cout<<"******************packet src["<<i<<"]: "<<packet.at(i).src<<endl;
 		cout<<"******************packet dst["<<i<<"]: "<<packet.at(i).dst<<endl;
@@ -253,10 +288,8 @@ void Manager::readTopologyFile(string topologyFile){
 	}
 	cout<<"----------------------"<<endl;*/
 
-	//------------------------------
-	/*for(int unsigned i=0; i<routeInfo.vecOfNodesInfo.size(); i++){
-		cout<<"****************vecOfNodesInfo["<< i<<"]: "<<routeInfo.vecOfNodesInfo.at(i)<<endl;
-	}	*/
+
+
 
 
 }
@@ -443,6 +476,7 @@ void Manager::sendToRouter(){
 	//------------------------------
 	
 	if(isRoutersConnected()){
+		usleep(30);
 		//-------------------------------
 		writeToManagerFile("[Manager]: All routers are connected!");
 		//--------------------------
@@ -481,7 +515,7 @@ void Manager::sendSafeToProceed(){
 	char messageHolder[255];
 
 	if(isRoutersReady()){
-
+		usleep(30);
 		bzero(messageHolder, sizeof(messageHolder));
 		sprintf(messageHolder, "[Manager]: All routers are ready!");
 		writeToManagerFile(messageHolder);
@@ -510,7 +544,7 @@ void Manager::sendNetworkIsUP(){
 	char messageHolder[255];
 
 	if(isRoutersReady()){
-
+		usleep(30);
 		bzero(messageHolder, sizeof(messageHolder));
 		sprintf(messageHolder, "[Manager]: All routers links are complete!");
 		writeToManagerFile(messageHolder);
@@ -538,7 +572,7 @@ void Manager::sendSAllBuildPath(){
 	char messageHolder[255];
 
 	if(isAllTableComplete()){
-
+		usleep(30);
 		bzero(messageHolder, sizeof(messageHolder));
 		sprintf(messageHolder, "[Manager]: All routers Table build complete!");
 		writeToManagerFile(messageHolder);
@@ -567,7 +601,7 @@ void Manager::sendSAllRoutersBroadcastComplete(){
 	char messageHolder[255];
 
 	if(isRoutersLinkComplete()){
-
+		usleep(30);
 		bzero(messageHolder, sizeof(messageHolder));
 		sprintf(messageHolder, "[Manager]: All routers limited broacast complete!");
 		writeToManagerFile(messageHolder);
@@ -587,6 +621,50 @@ void Manager::sendSAllRoutersBroadcastComplete(){
 		}
 
 	}
+}
+//*******************************************************************
+
+void Manager::sendOriginatePacket(){
+	char messageHolder[255];
+
+	if(isDijkstraComplete()){
+		usleep(30);
+		bzero(messageHolder, sizeof(messageHolder));
+		sprintf(messageHolder, "[Manager]: All routers Dijkstra shortest path algorithm complete!");
+		writeToManagerFile(messageHolder);
+		//--------------
+
+		for(int i=0; i<route.at(0).totalRoutes; i++){
+			//-------------
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]:	Sending to router[%d] - OriginatePacket!",i);
+			writeToManagerFile(messageHolder);
+
+			send(routerTCPsocket[i], "OriginatePacket!", 255, 0);
+
+			bzero(messageHolder, sizeof(messageHolder));
+			sprintf(messageHolder, "[Manager]: 		OriginatePacket! sent successfully to router [%d]",vecNodeAddress.at(i));
+			writeToManagerFile(messageHolder);
+		}
+
+	}
+	if((unsigned)numOfPacketsTOsend < packet.size()){
+		usleep(70000);
+		int source = packet[numOfPacketsTOsend].src;
+		//cout<<"******************CurrentPacket src: "<<packet[numOfPacketsTOsend].src<<endl;
+		string temp = "Packet: " + to_string(packet[numOfPacketsTOsend].src) + " | " + to_string(packet[numOfPacketsTOsend].dst);
+		string formatString = "Packet Source: "+ to_string(packet[numOfPacketsTOsend].src) + " | Packet Destination: " + to_string(packet[numOfPacketsTOsend].dst);
+		//cout<<"****************temp: "<<temp<<endl;
+
+		//-------------
+		bzero(messageHolder, sizeof(messageHolder));
+		sprintf(messageHolder, "[Manager]: Sending packet source and destination to router[%d] - %s",source,formatString.c_str());
+		writeToManagerFile(messageHolder);
+
+		send(routerTCPsocket[source], temp.c_str(), 255, 0);
+	}
+
+
 }
 
 //****************** The manager communicates with the routers via TCP************************
@@ -841,6 +919,19 @@ void Manager::managerProcess(){
 						
 
 					}
+					if(strcmp(buffer, "LSP_BUILT!") == 0){
+						bzero(messageHolder, sizeof(messageHolder));
+						sprintf(messageHolder, "[Manager]: Received from router[%d] - Dijkstra shortest path algorithm complete", i);
+						writeToManagerFile(messageHolder);
+
+						//cout<<"*************Router["<<i<<"]: "<<"************* Dijkstra shortest path algorithm complete************"<<endl;
+						//---------
+						totalDijkstraComplete.push_back(i);
+						//------
+						sendOriginatePacket();
+						
+
+					}
 					
 					
 				}
@@ -905,4 +996,3 @@ int main(int argc, char *argv[]) {
 
 	return 0;
 }
-
